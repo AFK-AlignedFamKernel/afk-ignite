@@ -38,21 +38,30 @@ pub trait IAdminVault<TContractState> {
 
 #[starknet::interface]
 pub trait IStablecoin<TContractState> {
-
     fn deposit(
         ref self: TContractState,
         recipient: ContractAddress,
         amount: u256,
         token_address: ContractAddress,
-    ) -> bool;    
+    ) -> bool;
 
 
-    fn withdraw(ref self: TContractState,
+    fn withdraw(
+        ref self: TContractState,
         recipient: ContractAddress,
         amount: u256,
         token_address: ContractAddress,
-    ) -> bool;    
+    ) -> bool;
+}
 
+#[derive(Drop, starknet::Store, Serde, Copy)]
+pub struct TokenCollateral {
+    pub token_address: ContractAddress,
+    pub is_accepted: bool,
+    pub is_fees_deposit: bool,
+    pub is_fees_withdraw: bool,
+    pub fee_deposit_percentage: u256,
+    pub fee_withdraw_percentage: u256,
 }
 
 #[derive(Drop, starknet::Event, Serde, Copy)]

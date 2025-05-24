@@ -63,7 +63,6 @@ pub mod stablecoin_tests {
 
         name.serialize(ref calldata);
         symbol.serialize(ref calldata);
-        initial_supply.serialize(ref calldata);
         initial_recipient.serialize(ref calldata);
         decimals.serialize(ref calldata);
         token_address.serialize(ref calldata);

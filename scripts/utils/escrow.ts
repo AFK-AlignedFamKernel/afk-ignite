@@ -18,7 +18,6 @@ const PATH_SOCIAL_ACCOUNT_COMPILED = path.resolve(
 export const createEscrowAccount = async (
   name: string,
   symbol: string,
-  initial_supply: number,
   recipient: string,
   decimals: number,
   token_address: string,
@@ -66,7 +65,6 @@ export const createEscrowAccount = async (
     const constructorCalldata = CallData.compile([{
       name: byteArray.byteArrayFromString(name),
       symbol: byteArray.byteArrayFromString(symbol),
-      initial_supply: uint256.bnToUint256(BigInt(initial_supply)),
       recipient: recipient,
       decimals: decimals,
       token_address: token_address,

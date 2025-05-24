@@ -3,6 +3,7 @@ mod Stablecoin {
     use afk_ignite::interfaces::stablecoin::{
         ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
         MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
+        TokenCollateral,
     };
     use openzeppelin::access::accesscontrol::AccessControlComponent;
     use openzeppelin::access::ownable::OwnableComponent;
@@ -57,15 +58,9 @@ mod Stablecoin {
     #[abi(embed_v0)]
     impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
 
-    #[derive(Drop, starknet::Store, Serde, Copy)]
-    pub struct TokenCollateral {
-        pub token_address: ContractAddress,
-        pub is_accepted: bool,
-        pub is_fees_deposit: bool,
-        pub is_fees_withdraw: bool,
-        pub fee_deposit_percentage: u256,
-        pub fee_withdraw_percentage: u256,
-    }
+    const BPS: u256 = 10_000; // 100% = 10_000 bps
+
+    
 
     #[storage]
     struct Storage {
@@ -116,7 +111,6 @@ mod Stablecoin {
         ref self: ContractState,
         name: ByteArray,
         symbol: ByteArray,
-        initial_supply: u256,
         recipient: ContractAddress,
         decimals: u8,
         token_address: ContractAddress,
@@ -167,21 +161,7 @@ mod Stablecoin {
             self.erc20.ERC20_symbol.read()
         }
     }
-    // #[abi(embed_v0)]
-    // impl ERC20MetadataImpl of interface::IERC20Metadata<ContractState> {
-    //     fn name(self: @ContractState) -> ByteArray {
-    //         self.erc20.name()
-    //     }
-
-    //     fn symbol(self: @ContractState) -> ByteArray {
-    //         self.erc20.symbol()
-    //     }
-
-    //     fn decimals(self: @ContractState) -> u8 {
-    //         self.decimals.read()
-    //     }
-    // }
-
+ 
     #[abi(embed_v0)]
     impl IStablecoinImpl of IStablecoin<ContractState> {
         fn deposit(
@@ -302,19 +282,29 @@ mod Stablecoin {
 
 
             let deposit_amount_per_user_token = self.deposit_token_per_user.entry(caller).entry(token_address).read();
-            println!("deposit_amount_per_user_token: {}", deposit_amount_per_user_token);
+            // println!("deposit_amount_per_user_token: {}", deposit_amount_per_user_token);
             self.total_minted_amount.write(self.total_minted_amount.read() + deposit_amount_per_user_token);
 
             let erc20_quote = IERC20Dispatcher { contract_address: token_address };
             erc20_quote.transfer_from(caller, get_contract_address(), amount);
 
             // deducted fees if 1=1
+            // TODO fees per token
+   
             let mut fee_amount = 0;
             let fee_deposit_percentage = self.fee_deposit_percentage.read();
             if self.is_fees_deposit.read() {
                 fee_amount = amount * fee_deposit_percentage / 10_000;
                 erc20_quote.transfer_from(caller, get_contract_address(), fee_amount);
             }
+
+            // let token_collateral = self.token_collateral.entry(token_address).read();
+            // let is_fees_deposit_token = token_collateral.is_fees_deposit;
+            // let fee_deposit_percentage_token = token_collateral.fee_deposit_percentage;
+            // if is_fees_deposit_token {
+            //     fee_amount = amount * fee_deposit_percentage / 10_000;
+            //     erc20_quote.transfer_from(caller, get_contract_address(), fee_amount);
+            // }
 
             let amount_to_mint = amount - fee_amount;
             self.erc20.mint(recipient, amount_to_mint);
@@ -353,10 +343,10 @@ mod Stablecoin {
                 .entry(token_address)
                 .read();
 
-            println!("amount_deposited_per_user_token: {}", amount_deposited_per_user_token);
-            println!("amount_token_deposit: {}", amount_token_deposit);
-            println!("amount_to_withdraw: {}", amount_to_withdraw);
-            println!("amount: {}", amount);
+            // println!("amount_deposited_per_user_token: {}", amount_deposited_per_user_token);
+            // println!("amount_token_deposit: {}", amount_token_deposit);
+            // println!("amount_to_withdraw: {}", amount_to_withdraw);
+            // println!("amount: {}", amount);
             assert(amount_deposited_per_user_token >= amount, errors::INSUFFICIENT_BALANCE);
             let new_amount_to_withdraw = amount_to_withdraw - amount;
             let new_amount_token_deposit = amount_token_deposit - amount;
