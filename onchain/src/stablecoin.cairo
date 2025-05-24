@@ -1,13 +1,101 @@
+use starknet::ContractAddress;
+
+pub const MINTER_ROLE: felt252 = selector!("MINTER_ROLE");
+pub const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
+pub const OPERATOR_ROLE: felt252 = selector!("OPERATOR_ROLE");
+
+#[starknet::interface]
+pub trait IERC20Basic<TContractState> {
+    fn decimals(self: @TContractState) -> u8;
+}
+
+
+#[starknet::interface]
+pub trait IAdminVault<TContractState> {
+    fn set_token_collateral(
+        ref self: TContractState,
+        token_address: ContractAddress,
+        is_accepted: bool,
+        is_fees_deposit: bool,
+        is_fees_withdraw: bool,
+        fee_deposit_percentage: u256,
+        fee_withdraw_percentage: u256,
+    ) -> bool;
+    fn set_fees(
+        ref self: TContractState,
+        is_fees_deposit: bool,
+        fee_deposit_percentage: u256,
+        is_fees_withdraw: bool,
+        fee_withdraw_percentage: u256,
+    ) -> bool;
+    fn set_token_accepted(
+        ref self: TContractState, token_address: ContractAddress, is_accepted: bool,
+    ) -> bool;
+}
+
+
+#[starknet::interface]
+pub trait IStablecoin<TContractState> {
+    fn deposit(
+        ref self: TContractState,
+        recipient: ContractAddress,
+        amount: u256,
+        token_address: ContractAddress,
+    ) -> bool;
+
+
+    fn withdraw(
+        ref self: TContractState,
+        recipient: ContractAddress,
+        amount: u256,
+        token_address: ContractAddress,
+    ) -> bool;
+}
+
+#[derive(Drop, starknet::Event, Serde, Copy)]
+pub struct MintDepositEvent {
+    pub is_fees_deposit: bool,
+    pub fee_deposit_percentage: u256,
+    pub amount_send: u256,
+    pub amount_received: u256,
+    pub token_address: ContractAddress,
+    pub recipient: ContractAddress,
+    pub caller: ContractAddress,
+}
+
+
+#[derive(Drop, starknet::Event, Serde, Copy)]
+pub struct WithdrawnEvent {
+    pub is_fees_deposit: bool,
+    pub fee_deposit_percentage: u256,
+    pub amount_send: u256,
+    pub amount_received: u256,
+    pub token_address: ContractAddress,
+    pub recipient: ContractAddress,
+    pub caller: ContractAddress,
+}
+
+#[derive(Drop, starknet::Event, Serde, Copy)]
+pub struct AdminVaultEvent {
+    pub is_fees_deposit: bool,
+    pub fee_deposit_percentage: u256,
+    pub is_fees_withdraw: bool,
+    pub fee_withdraw_percentage: u256,
+}
+
+
 #[starknet::contract]
 mod Stablecoin {
-    use afk_ignite::interfaces::stablecoin::{
-        ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
-        MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
-    };
-    use ekubo::interfaces::erc20::{IERC20Dispatcher, IERC20DispatcherTrait};
+    // use afk_ignite::interfaces::stablecoin::{
+    //     ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
+    //     MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
+    // };
     use openzeppelin::access::accesscontrol::AccessControlComponent;
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::introspection::src5::SRC5Component;
+    use openzeppelin::token::erc20::interface::{
+        IERC20Dispatcher, IERC20DispatcherTrait, IERC20Metadata, IERC20MetadataDispatcher,
+    };
     use openzeppelin::token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
     use openzeppelin::upgrades::UpgradeableComponent;
     use openzeppelin::upgrades::interface::IUpgradeable;
@@ -16,15 +104,26 @@ mod Stablecoin {
     };
     use starknet::{ContractAddress, get_caller_address, get_contract_address};
     use crate::errors;
+    use super::{
+        ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
+        MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
+    };
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
-    component!(path: SRC5Component, storage: src5, event: SRC5Event);
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
     component!(path: AccessControlComponent, storage: accesscontrol, event: AccessControlEvent);
+    component!(path: SRC5Component, storage: src5, event: SRC5Event);
+
     // ERC20 Mixin
+    // #[abi(embed_v0)]
+    // impl ERC20MixinImpl = ERC20Component::ERC20MixinImpl<ContractState>;
+
     #[abi(embed_v0)]
-    impl ERC20MixinImpl = ERC20Component::ERC20MixinImpl<ContractState>;
+    impl ERC20Impl = ERC20Component::ERC20Impl<ContractState>;
+    #[abi(embed_v0)]
+    impl ERC20CamelOnlyImpl = ERC20Component::ERC20CamelOnlyImpl<ContractState>;
     impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
+
 
     // Ownable Mixin
     #[abi(embed_v0)]
@@ -43,7 +142,6 @@ mod Stablecoin {
     // SRC5
     #[abi(embed_v0)]
     impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
-
 
     #[derive(Drop, starknet::Store, Serde, Copy)]
     pub struct TokenCollateral {
@@ -65,8 +163,6 @@ mod Stablecoin {
         is_fees_withdraw: bool,
         fee_deposit_percentage: u256,
         fee_withdraw_percentage: u256,
-        names: Map<ContractAddress, felt252>,
-        total_names: u128,
         total_minted_amount: u256,
         mint_per_user: Map<ContractAddress, u256>,
         mint_per_token: Map<ContractAddress, u256>,
@@ -86,11 +182,8 @@ mod Stablecoin {
     #[event]
     #[derive(Drop, starknet::Event)]
     enum Event {
-        #[flat]
         MintDepositEvent: MintDepositEvent,
-        #[flat]
         WithdrawnEvent: WithdrawnEvent,
-        #[flat]
         AdminVaultEvent: AdminVaultEvent,
         #[flat]
         ERC20Event: ERC20Component::Event,
@@ -117,6 +210,8 @@ mod Stablecoin {
         let caller = get_caller_address();
         self.ownable.initializer(caller);
 
+        self.erc20.initializer(name, symbol);
+
         // AccessControl-related initialization
         self.accesscontrol.initializer();
         self.accesscontrol._grant_role(MINTER_ROLE, caller);
@@ -139,9 +234,24 @@ mod Stablecoin {
 
         // Call the internal function that writes decimals to storage
         self._set_decimals(decimals);
-        self.erc20.initializer(name, symbol);
     }
 
+
+    #[abi(embed_v0)]
+    impl ERC20MetadataImpl of IERC20Metadata<ContractState> {
+        fn decimals(self: @ContractState) -> u8 {
+            // Change the `decimals storage` below to the desired number of decimals
+            self.decimals.read()
+        }
+
+        fn name(self: @ContractState) -> ByteArray {
+            self.erc20.ERC20_name.read()
+        }
+
+        fn symbol(self: @ContractState) -> ByteArray {
+            self.erc20.ERC20_symbol.read()
+        }
+    }
     // #[abi(embed_v0)]
     // impl ERC20MetadataImpl of interface::IERC20Metadata<ContractState> {
     //     fn name(self: @ContractState) -> ByteArray {
@@ -156,23 +266,6 @@ mod Stablecoin {
     //         self.decimals.read()
     //     }
     // }
-
-   
-
-    #[abi(embed_v0)]
-    impl IERC20BasicImpl of IERC20Basic<ContractState> {
-        fn name(self: @ContractState) -> ByteArray {
-            self.erc20.name()
-        }
-
-        fn symbol(self: @ContractState) -> ByteArray {
-            self.erc20.symbol()
-        }
-
-        fn decimals(self: @ContractState) -> u8 {
-            self.decimals.read()
-        }
-    }
 
     #[abi(embed_v0)]
     impl IStablecoinImpl of IStablecoin<ContractState> {
@@ -274,7 +367,7 @@ mod Stablecoin {
             let caller = get_caller_address();
             let token_collateral = self.token_collateral.entry(token_address).read();
             assert(token_collateral.is_accepted, errors::TOKEN_NOT_ACCEPTED);
-    
+
             let amount_deposited_per_user = self.mint_per_user.entry(caller).read();
             let amount_deposited_per_token = self.mint_per_token.entry(token_address).read();
             let amount_deposited_per_user_token = self
@@ -292,21 +385,21 @@ mod Stablecoin {
                 .entry(token_address)
                 .write(amount_deposited_per_user_token + amount);
             self.total_minted_amount.write(self.total_minted_amount.read() + amount);
-    
+
             let erc20_quote = IERC20Dispatcher { contract_address: token_address };
-            erc20_quote.transferFrom(caller, get_contract_address(), amount);
-    
+            erc20_quote.transfer_from(caller, get_contract_address(), amount);
+
             // deducted fees if 1=1
             let mut fee_amount = 0;
             let fee_deposit_percentage = self.fee_deposit_percentage.read();
             if self.is_fees_deposit.read() {
                 fee_amount = amount * fee_deposit_percentage / 10_000;
-                erc20_quote.transferFrom(caller, get_contract_address(), fee_amount);
+                erc20_quote.transfer_from(caller, get_contract_address(), fee_amount);
             }
-    
+
             let amount_to_mint = amount - fee_amount;
             self.erc20.mint(recipient, amount_to_mint);
-    
+
             self
                 .emit(
                     MintDepositEvent {
@@ -364,10 +457,10 @@ mod Stablecoin {
             let mut fee_amount = 0;
             if self.is_fees_withdraw.read() {
                 fee_amount = amount * fee_withdraw_percentage / 10_000;
-                erc20_quote.transferFrom(get_contract_address(), recipient, fee_amount);
+                erc20_quote.transfer_from(get_contract_address(), recipient, fee_amount);
             }
 
-            erc20_quote.transferFrom(get_contract_address(), recipient, amount - fee_amount);
+            erc20_quote.transfer_from(get_contract_address(), recipient, amount - fee_amount);
 
             self.erc20.burn(caller, amount);
 

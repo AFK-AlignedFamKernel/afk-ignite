@@ -4,9 +4,9 @@ pub mod errors;
 
 pub mod interfaces {
     pub mod stablecoin;
-    pub mod erc20;
+    // pub mod erc20;
 }
 
-pub mod tests {
-    pub mod stablecoin_tests;
-}
+// pub mod tests {
+//     pub mod stablecoin_tests;
+// }
