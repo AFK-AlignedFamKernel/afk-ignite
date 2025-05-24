@@ -1,0 +1,12 @@
+.env
+node_modules
+yarn.lock
+pnpm-lock.yaml
+package-lock.json
+.next
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+.pnpm-store
