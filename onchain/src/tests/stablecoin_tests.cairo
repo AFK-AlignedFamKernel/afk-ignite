@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub mod stablecoin_tests {
     use afk_ignite::interfaces::stablecoin::{
-        IAdminVault, IAdminVaultDispatcher, IAdminVaultDispatcherTrait, IStablecoin,
+        // IAdminVault, IAdminVaultDispatcher, IAdminVaultDispatcherTrait, IStablecoin,
         IStablecoinDispatcherTrait,
         IStablecoinDispatcher,
     };
@@ -10,8 +10,8 @@ pub mod stablecoin_tests {
     use core::option::OptionTrait;
     use core::result::ResultTrait;
     // use openzeppelin::token::erc20::interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait};
-    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
-
+    // use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+    use crate::interfaces::erc20::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait};
     use snforge_std::{
         CheatSpan, ContractClassTrait, DeclareResultTrait, EventSpyAssertionsTrait,
         cheat_block_timestamp, cheat_caller_address, declare, spy_events,
@@ -75,7 +75,7 @@ pub mod stablecoin_tests {
     fn test_stablecoin_mint() {
         let (dispatcher, token_dispatcher) = context(false);
 
-        let user_balance = token_dispatcher.balance_of(OWNER);
+        let user_balance = token_dispatcher.balance_of(OWNER.try_into().unwrap());
         cheat_caller_address(token_dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
       
         token_dispatcher.approve(dispatcher.contract_address, user_balance);
