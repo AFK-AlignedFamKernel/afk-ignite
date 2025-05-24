@@ -199,12 +199,23 @@ mod Stablecoin {
         erc20_quote.transferFrom(caller, get_contract_address(), amount);
 
         // deducted fees if 1=1
+        let fee_deposit_percentage = self.fee_deposit_percentage.read();
         if self.is_fees_deposit.read() {
-            let fee_amount = amount * self.fee_deposit_percentage.read() / 100;
+            let fee_amount = amount * fee_deposit_percentage / 100;
             erc20_quote.transferFrom(caller, get_contract_address(), fee_amount);
         }
 
         self.erc20.mint(recipient, amount);
+
+        self.emit( MintDepositEvent {
+            is_fees_deposit: self.is_fees_deposit.read(),
+            fee_deposit_percentage: fee_deposit_percentage,
+            amount_send: amount,
+            amount_received: amount,
+            token_address: token_address,
+            recipient: recipient,
+            caller: caller,
+        });
     }
 
 
