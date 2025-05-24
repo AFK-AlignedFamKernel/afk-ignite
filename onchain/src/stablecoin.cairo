@@ -1,95 +1,9 @@
-use starknet::ContractAddress;
-
-pub const MINTER_ROLE: felt252 = selector!("MINTER_ROLE");
-pub const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
-pub const OPERATOR_ROLE: felt252 = selector!("OPERATOR_ROLE");
-
-#[starknet::interface]
-pub trait IERC20Basic<TContractState> {
-    fn decimals(self: @TContractState) -> u8;
-}
-
-
-#[starknet::interface]
-pub trait IAdminVault<TContractState> {
-    fn set_token_collateral(
-        ref self: TContractState,
-        token_address: ContractAddress,
-        is_accepted: bool,
-        is_fees_deposit: bool,
-        is_fees_withdraw: bool,
-        fee_deposit_percentage: u256,
-        fee_withdraw_percentage: u256,
-    ) -> bool;
-    fn set_fees(
-        ref self: TContractState,
-        is_fees_deposit: bool,
-        fee_deposit_percentage: u256,
-        is_fees_withdraw: bool,
-        fee_withdraw_percentage: u256,
-    ) -> bool;
-    fn set_token_accepted(
-        ref self: TContractState, token_address: ContractAddress, is_accepted: bool,
-    ) -> bool;
-}
-
-
-#[starknet::interface]
-pub trait IStablecoin<TContractState> {
-    fn deposit(
-        ref self: TContractState,
-        recipient: ContractAddress,
-        amount: u256,
-        token_address: ContractAddress,
-    ) -> bool;
-
-
-    fn withdraw(
-        ref self: TContractState,
-        recipient: ContractAddress,
-        amount: u256,
-        token_address: ContractAddress,
-    ) -> bool;
-}
-
-#[derive(Drop, starknet::Event, Serde, Copy)]
-pub struct MintDepositEvent {
-    pub is_fees_deposit: bool,
-    pub fee_deposit_percentage: u256,
-    pub amount_send: u256,
-    pub amount_received: u256,
-    pub token_address: ContractAddress,
-    pub recipient: ContractAddress,
-    pub caller: ContractAddress,
-}
-
-
-#[derive(Drop, starknet::Event, Serde, Copy)]
-pub struct WithdrawnEvent {
-    pub is_fees_deposit: bool,
-    pub fee_deposit_percentage: u256,
-    pub amount_send: u256,
-    pub amount_received: u256,
-    pub token_address: ContractAddress,
-    pub recipient: ContractAddress,
-    pub caller: ContractAddress,
-}
-
-#[derive(Drop, starknet::Event, Serde, Copy)]
-pub struct AdminVaultEvent {
-    pub is_fees_deposit: bool,
-    pub fee_deposit_percentage: u256,
-    pub is_fees_withdraw: bool,
-    pub fee_withdraw_percentage: u256,
-}
-
-
 #[starknet::contract]
 mod Stablecoin {
-    // use afk_ignite::interfaces::stablecoin::{
-    //     ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
-    //     MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
-    // };
+    use afk_ignite::interfaces::stablecoin::{
+        ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
+        MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
+    };
     use openzeppelin::access::accesscontrol::AccessControlComponent;
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::introspection::src5::SRC5Component;
@@ -104,10 +18,10 @@ mod Stablecoin {
     };
     use starknet::{ContractAddress, get_caller_address, get_contract_address};
     use crate::errors;
-    use super::{
-        ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
-        MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
-    };
+    // use super::{
+    //     ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
+    //     MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
+    // };
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
@@ -208,11 +122,15 @@ mod Stablecoin {
         token_address: ContractAddress,
     ) {
         let caller = get_caller_address();
-        self.ownable.initializer(caller);
+
+        // Call the internal function that writes decimals to storage
+        self._set_decimals(decimals);
 
         self.erc20.initializer(name, symbol);
 
         // AccessControl-related initialization
+        self.ownable.initializer(caller);
+
         self.accesscontrol.initializer();
         self.accesscontrol._grant_role(MINTER_ROLE, caller);
         self.accesscontrol._grant_role(ADMIN_ROLE, caller);
@@ -231,9 +149,6 @@ mod Stablecoin {
                     fee_withdraw_percentage: 0,
                 },
             );
-
-        // Call the internal function that writes decimals to storage
-        self._set_decimals(decimals);
     }
 
 
@@ -384,7 +299,11 @@ mod Stablecoin {
                 .entry(caller)
                 .entry(token_address)
                 .write(amount_deposited_per_user_token + amount);
-            self.total_minted_amount.write(self.total_minted_amount.read() + amount);
+
+
+            let deposit_amount_per_user_token = self.deposit_token_per_user.entry(caller).entry(token_address).read();
+            println!("deposit_amount_per_user_token: {}", deposit_amount_per_user_token);
+            self.total_minted_amount.write(self.total_minted_amount.read() + deposit_amount_per_user_token);
 
             let erc20_quote = IERC20Dispatcher { contract_address: token_address };
             erc20_quote.transfer_from(caller, get_contract_address(), amount);
@@ -434,6 +353,10 @@ mod Stablecoin {
                 .entry(token_address)
                 .read();
 
+            println!("amount_deposited_per_user_token: {}", amount_deposited_per_user_token);
+            println!("amount_token_deposit: {}", amount_token_deposit);
+            println!("amount_to_withdraw: {}", amount_to_withdraw);
+            println!("amount: {}", amount);
             assert(amount_deposited_per_user_token >= amount, errors::INSUFFICIENT_BALANCE);
             let new_amount_to_withdraw = amount_to_withdraw - amount;
             let new_amount_token_deposit = amount_token_deposit - amount;
@@ -457,10 +380,10 @@ mod Stablecoin {
             let mut fee_amount = 0;
             if self.is_fees_withdraw.read() {
                 fee_amount = amount * fee_withdraw_percentage / 10_000;
-                erc20_quote.transfer_from(get_contract_address(), recipient, fee_amount);
+                erc20_quote.transfer(recipient, fee_amount);
             }
 
-            erc20_quote.transfer_from(get_contract_address(), recipient, amount - fee_amount);
+            erc20_quote.transfer(recipient, amount - fee_amount);
 
             self.erc20.burn(caller, amount);
 
