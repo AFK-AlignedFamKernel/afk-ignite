@@ -13,6 +13,30 @@ trait IERC20Basic<TContractState> {
 
 
 #[starknet::interface]
+trait IAdminVault<TContractState> {
+    fn set_token_collateral(
+        ref self: TContractState,
+        token_address: ContractAddress,
+        is_accepted: bool,
+        is_fees_deposit: bool,
+        is_fees_withdraw: bool,
+        fee_deposit_percentage: u256,
+        fee_withdraw_percentage: u256,
+    ) -> bool;
+    fn set_fees(
+        ref self: TContractState,
+        is_fees_deposit: bool,
+        fee_deposit_percentage: u256,
+        is_fees_withdraw: bool,
+        fee_withdraw_percentage: u256,
+    ) -> bool;
+    fn set_token_accepted(
+        ref self: TContractState, token_address: ContractAddress, is_accepted: bool,
+    ) -> bool;
+}
+
+
+#[starknet::interface]
 trait IStablecoin<TContractState> {
     // fn name(self: @TContractState) -> ByteArray;
     // fn symbol(self: @TContractState) -> ByteArray;
@@ -29,12 +53,33 @@ trait IStablecoin<TContractState> {
 pub struct MintDepositEvent {
     pub is_fees_deposit: bool,
     pub fee_deposit_percentage: u256,
-    pub amount_send:u256,
+    pub amount_send: u256,
     pub amount_received: u256,
     pub token_address: ContractAddress,
     pub recipient: ContractAddress,
     pub caller: ContractAddress,
 }
+
+
+#[derive(Drop, starknet::Event, Serde, Copy)]
+pub struct WithdrawnEvent {
+    pub is_fees_deposit: bool,
+    pub fee_deposit_percentage: u256,
+    pub amount_send: u256,
+    pub amount_received: u256,
+    pub token_address: ContractAddress,
+    pub recipient: ContractAddress,
+    pub caller: ContractAddress,
+}
+
+#[derive(Drop, starknet::Event, Serde, Copy)]
+pub struct AdminVaultEvent {
+    pub is_fees_deposit: bool,
+    pub fee_deposit_percentage: u256,
+    pub is_fees_withdraw: bool,
+    pub fee_withdraw_percentage: u256,
+}
+
 
 #[starknet::contract]
 mod Stablecoin {
@@ -49,7 +94,11 @@ mod Stablecoin {
         Map, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess,
     };
     use starknet::{ContractAddress, get_caller_address, get_contract_address};
-    use super::{ADMIN_ROLE, IERC20Basic, IStablecoin, MINTER_ROLE, OPERATOR_ROLE, MintDepositEvent};
+    use crate::errors;
+    use super::{
+        ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
+        MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
+    };
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
     component!(path: SRC5Component, storage: src5, event: SRC5Event);
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
@@ -122,6 +171,10 @@ mod Stablecoin {
         #[flat]
         MintDepositEvent: MintDepositEvent,
         #[flat]
+        WithdrawnEvent: WithdrawnEvent,
+        #[flat]
+        AdminVaultEvent: AdminVaultEvent,
+        #[flat]
         ERC20Event: ERC20Component::Event,
         #[flat]
         OwnableEvent: OwnableComponent::Event,
@@ -135,11 +188,14 @@ mod Stablecoin {
 
     #[constructor]
     fn constructor(
-        ref self: ContractState, initial_supply: u256, recipient: ContractAddress, decimals: u8,
+        ref self: ContractState,
+        name: ByteArray,
+        symbol: ByteArray,
+        initial_supply: u256,
+        recipient: ContractAddress,
+        decimals: u8,
+        token_address: ContractAddress,
     ) {
-        let name = "MyToken";
-        let symbol = "MTK";
-
         let caller = get_caller_address();
         self.ownable.initializer(caller);
 
@@ -149,11 +205,18 @@ mod Stablecoin {
         self.accesscontrol._grant_role(ADMIN_ROLE, caller);
         self.accesscontrol._grant_role(OPERATOR_ROLE, caller);
 
+        self.token_collateral.entry(token_address).write(TokenCollateral {
+            token_address: token_address,
+            is_accepted: true,
+            is_fees_deposit: true,
+            is_fees_withdraw: true,
+            fee_deposit_percentage: 0,
+            fee_withdraw_percentage: 0,
+        });
+
         // Call the internal function that writes decimals to storage
         self._set_decimals(decimals);
-
         self.erc20.initializer(name, symbol);
-        self.erc20.mint(recipient, initial_supply);
     }
 
     // #[abi(embed_v0)]
@@ -178,46 +241,99 @@ mod Stablecoin {
         amount: u256,
         token_address: ContractAddress,
     ) {
-        // Set permissions with Ownable
-        self.ownable.assert_only_owner();
         let caller = get_caller_address();
-
         let token_collateral = self.token_collateral.entry(token_address).read();
+        assert(token_collateral.is_accepted, errors::TOKEN_NOT_ACCEPTED);
 
-        if token_collateral.is_accepted {
-            // Mint tokens if called by the contract owner
-            self.erc20.mint(recipient, amount);
-
-            self._mint(self.owner(), amount);
-        }
-
-        self.mint_per_user.entry(caller).write(amount);
-        self.mint_per_token.entry(token_address).write(amount);
+        let amount_deposited_per_user = self.mint_per_user.entry(caller).read();
+        let amount_deposited_per_token = self.mint_per_token.entry(token_address).read();
+        let new_amount_deposited_per_user = amount_deposited_per_user + amount;
+        let new_amount_deposited_per_token = amount_deposited_per_token + amount;
+        self.mint_per_user.entry(caller).write(new_amount_deposited_per_user);
+        self.mint_per_token.entry(token_address).write(new_amount_deposited_per_token);
         self.total_minted_amount.write(self.total_minted_amount.read() + amount);
 
         let erc20_quote = IERC20Dispatcher { contract_address: token_address };
         erc20_quote.transferFrom(caller, get_contract_address(), amount);
 
         // deducted fees if 1=1
+        let mut fee_amount = 0;
         let fee_deposit_percentage = self.fee_deposit_percentage.read();
         if self.is_fees_deposit.read() {
-            let fee_amount = amount * fee_deposit_percentage / 100;
+            fee_amount = amount * fee_deposit_percentage / 10_000;
             erc20_quote.transferFrom(caller, get_contract_address(), fee_amount);
         }
 
-        self.erc20.mint(recipient, amount);
+        let amount_to_mint = amount - fee_amount;
+        self.erc20.mint(recipient, amount_to_mint);
 
-        self.emit( MintDepositEvent {
-            is_fees_deposit: self.is_fees_deposit.read(),
-            fee_deposit_percentage: fee_deposit_percentage,
-            amount_send: amount,
-            amount_received: amount,
-            token_address: token_address,
-            recipient: recipient,
-            caller: caller,
-        });
+        self
+            .emit(
+                MintDepositEvent {
+                    is_fees_deposit: self.is_fees_deposit.read(),
+                    fee_deposit_percentage: fee_deposit_percentage,
+                    amount_send: amount,
+                    amount_received: amount,
+                    token_address: token_address,
+                    recipient: recipient,
+                    caller: caller,
+                },
+            );
     }
 
+    #[external(v0)]
+    fn withdrawn(
+        ref self: ContractState,
+        recipient: ContractAddress,
+        amount: u256,
+        token_address: ContractAddress,
+    ) {
+        // Set permissions with Ownable
+        let caller = get_caller_address();
+
+        let token_collateral = self.token_collateral.entry(token_address).read();
+        assert(token_collateral.is_accepted, errors::TOKEN_NOT_ACCEPTED);
+
+        let amount_to_withdraw = self.mint_per_user.entry(caller).read();
+        let amount_token_deposit = self.mint_per_token.entry(token_address).read();
+
+        let new_amount_to_withdraw = amount_to_withdraw - amount;
+        let new_amount_token_deposit = amount_token_deposit - amount;
+
+        // assert(new_amount_to_withdraw >= 0, errors::INSUFFICIENT_BALANCE);
+        // assert(new_amount_token_deposit >= 0, errors::INSUFFICIENT_BALANCE);
+
+        self.mint_per_user.entry(caller).write(new_amount_to_withdraw);
+        self.mint_per_token.entry(token_address).write(new_amount_token_deposit);
+        self.total_minted_amount.write(self.total_minted_amount.read() - amount);
+
+        let fee_deposit_percentage = self.fee_deposit_percentage.read();
+        let fee_withdraw_percentage = self.fee_withdraw_percentage.read();
+
+        let erc20_quote = IERC20Dispatcher { contract_address: token_address };
+        let mut fee_amount = 0;
+        if self.is_fees_withdraw.read() {
+            let fee_amount = amount * fee_withdraw_percentage / 10_000;
+            erc20_quote.transferFrom(get_contract_address(), recipient, fee_amount);
+        }
+
+        erc20_quote.transferFrom(get_contract_address(), recipient, amount - fee_amount);
+
+        self.erc20.burn(caller, amount);
+
+        self
+            .emit(
+                WithdrawnEvent {
+                    is_fees_deposit: self.is_fees_deposit.read(),
+                    fee_deposit_percentage: fee_deposit_percentage,
+                    amount_send: amount,
+                    amount_received: amount,
+                    token_address: token_address,
+                    recipient: recipient,
+                    caller: caller,
+                },
+            );
+    }
 
     #[abi(embed_v0)]
     impl IERC20BasicImpl of IERC20Basic<ContractState> {
@@ -234,6 +350,64 @@ mod Stablecoin {
         }
     }
 
+    #[abi(embed_v0)]
+    impl IAdminVaultImpl of IAdminVault<ContractState> {
+        fn set_token_collateral(
+            ref self: ContractState,
+            token_address: ContractAddress,
+            is_accepted: bool,
+            is_fees_deposit: bool,
+            is_fees_withdraw: bool,
+            fee_deposit_percentage: u256,
+            fee_withdraw_percentage: u256,
+        ) -> bool {
+            self
+                .token_collateral
+                .entry(token_address)
+                .write(
+                    TokenCollateral {
+                        token_address: token_address,
+                        is_accepted: is_accepted,
+                        is_fees_deposit: is_fees_deposit,
+                        is_fees_withdraw: is_fees_withdraw,
+                        fee_deposit_percentage: fee_deposit_percentage,
+                        fee_withdraw_percentage: fee_withdraw_percentage,
+                    },
+                );
+            true
+        }
+
+        fn set_token_accepted(
+            ref self: ContractState, token_address: ContractAddress, is_accepted: bool,
+        ) -> bool {
+            self.token_accepted.entry(token_address).write(is_accepted);
+            true
+        }
+
+        fn set_fees(
+            ref self: ContractState,
+            is_fees_deposit: bool,
+            fee_deposit_percentage: u256,
+            is_fees_withdraw: bool,
+            fee_withdraw_percentage: u256,
+        ) -> bool {
+            self.is_fees_deposit.write(is_fees_deposit);
+            self.fee_deposit_percentage.write(fee_deposit_percentage);
+            self.is_fees_withdraw.write(is_fees_withdraw);
+            self.fee_withdraw_percentage.write(fee_withdraw_percentage);
+            self
+                .emit(
+                    AdminVaultEvent {
+                        is_fees_deposit: is_fees_deposit,
+                        fee_deposit_percentage: fee_deposit_percentage,
+                        is_fees_withdraw: is_fees_withdraw,
+                        fee_withdraw_percentage: fee_withdraw_percentage,
+                    },
+                );
+            true
+        }
+    }
+
     #[generate_trait]
     impl InternalImpl of InternalTrait {
         fn _set_decimals(ref self: ContractState, decimals: u8) {
@@ -244,5 +418,4 @@ mod Stablecoin {
             self.erc20.mint(to, amount);
         }
     }
-
 }

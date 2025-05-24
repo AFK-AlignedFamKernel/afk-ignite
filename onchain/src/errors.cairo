@@ -1,0 +1,1 @@
+pub const TOKEN_NOT_ACCEPTED:felt252='token not enable';

@@ -2,17 +2,17 @@
 version = 1
 
 [[package]]
-name = "ekubo"
-version = "0.1.0"
-source = "git+https://github.com/EkuboProtocol/abis?rev=edb6de8c9baf515f1053bbab3d86825d54a63bc3#edb6de8c9baf515f1053bbab3d86825d54a63bc3"
-
-[[package]]
-name = "onchain"
+name = "afk_ignite"
 version = "0.1.0"
 dependencies = [
  "ekubo",
  "openzeppelin",
 ]
+
+[[package]]
+name = "ekubo"
+version = "0.1.0"
+source = "git+https://github.com/EkuboProtocol/abis?rev=edb6de8c9baf515f1053bbab3d86825d54a63bc3#edb6de8c9baf515f1053bbab3d86825d54a63bc3"
 
 [[package]]
 name = "openzeppelin"
