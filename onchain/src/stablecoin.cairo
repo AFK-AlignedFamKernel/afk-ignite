@@ -153,6 +153,7 @@ mod Stablecoin {
         total_minted_amount: u256,
         mint_per_user: Map<ContractAddress, u256>,
         mint_per_token: Map<ContractAddress, u256>,
+        deposit_token_per_user: Map<ContractAddress, Map<ContractAddress, u256>>,
         #[substorage(v0)]
         erc20: ERC20Component::Storage,
         #[substorage(v0)]
@@ -247,10 +248,12 @@ mod Stablecoin {
 
         let amount_deposited_per_user = self.mint_per_user.entry(caller).read();
         let amount_deposited_per_token = self.mint_per_token.entry(token_address).read();
+        let amount_deposited_per_user_token = self.deposit_token_per_user.entry(caller).entry(token_address).read();
         let new_amount_deposited_per_user = amount_deposited_per_user + amount;
         let new_amount_deposited_per_token = amount_deposited_per_token + amount;
         self.mint_per_user.entry(caller).write(new_amount_deposited_per_user);
         self.mint_per_token.entry(token_address).write(new_amount_deposited_per_token);
+        self.deposit_token_per_user.entry(caller).entry(token_address).write(amount_deposited_per_user_token + amount);
         self.total_minted_amount.write(self.total_minted_amount.read() + amount);
 
         let erc20_quote = IERC20Dispatcher { contract_address: token_address };
@@ -296,7 +299,9 @@ mod Stablecoin {
 
         let amount_to_withdraw = self.mint_per_user.entry(caller).read();
         let amount_token_deposit = self.mint_per_token.entry(token_address).read();
+        let amount_deposited_per_user_token = self.deposit_token_per_user.entry(caller).entry(token_address).read();
 
+        assert(amount_deposited_per_user_token >= amount, errors::INSUFFICIENT_BALANCE);
         let new_amount_to_withdraw = amount_to_withdraw - amount;
         let new_amount_token_deposit = amount_token_deposit - amount;
 
@@ -306,6 +311,7 @@ mod Stablecoin {
         self.mint_per_user.entry(caller).write(new_amount_to_withdraw);
         self.mint_per_token.entry(token_address).write(new_amount_token_deposit);
         self.total_minted_amount.write(self.total_minted_amount.read() - amount);
+        self.deposit_token_per_user.entry(caller).entry(token_address).write(amount_deposited_per_user_token - amount);
 
         let fee_deposit_percentage = self.fee_deposit_percentage.read();
         let fee_withdraw_percentage = self.fee_withdraw_percentage.read();
@@ -313,7 +319,7 @@ mod Stablecoin {
         let erc20_quote = IERC20Dispatcher { contract_address: token_address };
         let mut fee_amount = 0;
         if self.is_fees_withdraw.read() {
-            let fee_amount = amount * fee_withdraw_percentage / 10_000;
+            fee_amount = amount * fee_withdraw_percentage / 10_000;
             erc20_quote.transferFrom(get_contract_address(), recipient, fee_amount);
         }
 
