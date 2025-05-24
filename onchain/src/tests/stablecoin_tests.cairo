@@ -85,16 +85,16 @@ pub mod stablecoin_tests {
         let token_address = token_dispatcher.contract_address;
         dispatcher.deposit(OWNER.try_into().unwrap(), 100_000_u256 * fast_power(10, 18), token_address);
         
-        // let token_vault = IERC20Dispatcher { contract_address: dispatcher.contract_address };
+        let token_vault = IERC20Dispatcher { contract_address: dispatcher.contract_address };
         
-        // let balance_of_user = token_vault.balance_of(USER);
+        let balance_of_user = token_vault.balance_of(USER);
         
-        // println!("balance_of_user: {}", balance_of_user);
-        // assert_eq!(balance_of_user, 100_000_u256 * fast_power(10, 18));
+        println!("balance_of_user: {}", balance_of_user);
+        assert_eq!(balance_of_user, 100_000_u256 * fast_power(10, 18));
        
-        // dispatcher.withdraw(USER.try_into().unwrap(), 100_000_u256 * fast_power(10, 18), token_address);
-        // let balance_of_user_after = token_vault.balance_of(USER);
-        // assert_eq!(balance_of_user_after, 0);
-        // assert_eq!(token_dispatcher.balance_of(USER), user_balance);
+        dispatcher.withdraw(USER.try_into().unwrap(), 100_000_u256 * fast_power(10, 18), token_address);
+        let balance_of_user_after = token_vault.balance_of(USER);
+        assert_eq!(balance_of_user_after, 0);
+        assert_eq!(token_dispatcher.balance_of(USER), user_balance);
     }
 }
