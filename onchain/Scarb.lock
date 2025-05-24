@@ -5,9 +5,22 @@ version = 1
 name = "afk_ignite"
 version = "0.1.0"
 dependencies = [
+ "alexandria_math",
+ "alexandria_storage",
  "ekubo",
  "openzeppelin",
+ "snforge_std",
 ]
+
+[[package]]
+name = "alexandria_math"
+version = "0.5.1"
+source = "git+https://github.com/keep-starknet-strange/alexandria.git#451fe4214d1995be141f1c60d3dd4e6673448d08"
+
+[[package]]
+name = "alexandria_storage"
+version = "0.5.1"
+source = "git+https://github.com/keep-starknet-strange/alexandria.git#451fe4214d1995be141f1c60d3dd4e6673448d08"
 
 [[package]]
 name = "ekubo"
@@ -132,3 +145,18 @@ name = "openzeppelin_utils"
 version = "1.0.0"
 source = "registry+https://scarbs.xyz/"
 checksum = "sha256:fd348b31c4a4407add33adc3c2b8f26dca71dbd7431faaf726168f37a91db0c1"
+
+[[package]]
+name = "snforge_scarb_plugin"
+version = "0.40.0"
+source = "registry+https://scarbs.xyz/"
+checksum = "sha256:7c3b21f6cdab14fc63e19f9e6789b6a3d44f5618ebcf02d03b397375304e1891"
+
+[[package]]
+name = "snforge_std"
+version = "0.40.0"
+source = "registry+https://scarbs.xyz/"
+checksum = "sha256:0221bbe959eec72eb2e30be68df66c4ff5dcd924ec491f285c974e49671fabc0"
+dependencies = [
+ "snforge_scarb_plugin",
+]
