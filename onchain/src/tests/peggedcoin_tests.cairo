@@ -1,7 +1,7 @@
 #[cfg(test)]
-pub mod stablecoin_tests {
-    use afk_ignite::interfaces::stablecoin::{// IAdminVault, IAdminVaultDispatcher, IAdminVaultDispatcherTrait, IStablecoin,
-    IStablecoinDispatcherTrait, IStablecoinDispatcher};
+pub mod pegged_tests {
+    use afk_ignite::interfaces::peggedcoin::{// IAdminVault, IAdminVaultDispatcher, IAdminVaultDispatcherTrait, IStablecoin,
+    IPeggedCoinDispatcherTrait, IPeggedCoinDispatcher};
     use alexandria_math::fast_power::fast_power;
     use core::num::traits::Zero;
     use core::option::OptionTrait;
@@ -75,12 +75,12 @@ pub mod stablecoin_tests {
         // calldata.append(18);
         // calldata.append(token_address.try_into().unwrap());
 
-        let contract = declare("Stablecoin").unwrap().contract_class();
+        let contract = declare("PeggedCoin").unwrap().contract_class();
         let (contract_address, _) = contract.deploy(@calldata).unwrap();
         contract_address
     }
 
-    fn context(whitelist: bool) -> (IStablecoinDispatcher, IERC20Dispatcher) {
+    fn context(whitelist: bool) -> (IPeggedCoinDispatcher, IERC20Dispatcher) {
         let token_deposit_address = deploy_token_collateral(
             OWNER, 1_000_000_u256 * fast_power(10, 18), 18, "MockToken", "MTK",
         );
@@ -97,7 +97,7 @@ pub mod stablecoin_tests {
         );
         println!("contract_address: {:?}", contract_address);
 
-        let dispatcher = IStablecoinDispatcher { contract_address };
+        let dispatcher = IPeggedCoinDispatcher { contract_address };
         cheat_caller_address(contract_address, USER, CheatSpan::TargetCalls(1));
         (dispatcher, token_dispatcher)
     }

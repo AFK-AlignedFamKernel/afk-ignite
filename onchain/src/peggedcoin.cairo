@@ -1,7 +1,7 @@
 #[starknet::contract]
-mod Stablecoin {
-    use afk_ignite::interfaces::stablecoin::{
-        ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
+mod PeggedCoin {
+    use afk_ignite::interfaces::peggedcoin::{
+        ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IPeggedCoin, MINTER_ROLE,
         MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
         TokenCollateral,
     };
@@ -163,7 +163,7 @@ mod Stablecoin {
     }
  
     #[abi(embed_v0)]
-    impl IStablecoinImpl of IStablecoin<ContractState> {
+    impl IPeggedCoinImpl of IPeggedCoin<ContractState> {
         fn deposit(
             ref self: ContractState,
             recipient: ContractAddress,

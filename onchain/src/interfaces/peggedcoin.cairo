@@ -37,7 +37,7 @@ pub trait IAdminVault<TContractState> {
 
 
 #[starknet::interface]
-pub trait IStablecoin<TContractState> {
+pub trait IPeggedCoin<TContractState> {
     fn deposit(
         ref self: TContractState,
         recipient: ContractAddress,
