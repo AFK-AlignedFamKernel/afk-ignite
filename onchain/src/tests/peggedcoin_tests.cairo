@@ -1,6 +1,7 @@
 #[cfg(test)]
 pub mod pegged_tests {
-    use afk_ignite::interfaces::peggedcoin::{// IAdminVault, IAdminVaultDispatcher, IAdminVaultDispatcherTrait, IStablecoin,
+    use afk_ignite::interfaces::peggedcoin::{
+        IAdminVault, IAdminVaultDispatcher, IAdminVaultDispatcherTrait,
     IPeggedCoinDispatcherTrait, IPeggedCoinDispatcher};
     use alexandria_math::fast_power::fast_power;
     use core::num::traits::Zero;
@@ -12,6 +13,7 @@ pub mod pegged_tests {
         ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20, IERC20Dispatcher,
         IERC20DispatcherTrait, IERC20MetadataDispatcher,
     };
+    use afk_ignite::interfaces::deposit_vault::{IDepositVaultDispatcher, IDepositVaultDispatcherTrait};
     use snforge_std::{
         CheatSpan, ContractClassTrait, DeclareResultTrait, EventSpyAssertionsTrait,
         cheat_block_timestamp, cheat_caller_address, declare, spy_events,
@@ -24,6 +26,17 @@ pub mod pegged_tests {
     const PROTOCOL: ContractAddress = 'PROTOCOL'.try_into().unwrap();
     const USER: ContractAddress = 'USER'.try_into().unwrap();
     const BUYER: ContractAddress = 'BUYER'.try_into().unwrap();
+
+    fn deploy_deposit_vault(
+        initial_recipient: ContractAddress,
+    ) -> ContractAddress {
+        let mut calldata = array![];
+        initial_recipient.serialize(ref calldata);
+
+        let contract = declare("DepositVault").unwrap().contract_class();
+        let (contract_address, _) = contract.deploy(@calldata).unwrap();
+        contract_address
+    }
 
     fn deploy_token_collateral(
         initial_recipient: ContractAddress,
@@ -80,13 +93,12 @@ pub mod pegged_tests {
         contract_address
     }
 
-    fn context(whitelist: bool) -> (IPeggedCoinDispatcher, IERC20Dispatcher) {
+    fn context(whitelist: bool) -> (IPeggedCoinDispatcher, IERC20Dispatcher, IDepositVaultDispatcher) {
         let token_deposit_address = deploy_token_collateral(
             OWNER, 1_000_000_u256 * fast_power(10, 18), 18, "MockToken", "MTK",
         );
-        println!("token_deposit_address: {:?}", token_deposit_address);
 
-        let token_dispatcher = IERC20Dispatcher { contract_address: token_deposit_address };
+        let collateral_token_dispatcher = IERC20Dispatcher { contract_address: token_deposit_address };
         let contract_address = deploy_stable_mint(
             OWNER,
             1_000_000_u256 * fast_power(10, 18),
@@ -95,32 +107,84 @@ pub mod pegged_tests {
             "aligned BTC",
             "aBTC",
         );
-        println!("contract_address: {:?}", contract_address);
 
         let dispatcher = IPeggedCoinDispatcher { contract_address };
+
+
+        let deposit_vault_address = deploy_deposit_vault(OWNER);
+
+        let deposit_vault_dispatcher = IDepositVaultDispatcher { contract_address: deposit_vault_address };
+
         cheat_caller_address(contract_address, USER, CheatSpan::TargetCalls(1));
-        (dispatcher, token_dispatcher)
+        (dispatcher, collateral_token_dispatcher, deposit_vault_dispatcher)
     }
 
     #[test]
     fn test_stablecoin_mint() {
-        let (dispatcher, token_dispatcher) = context(false);
+        let (dispatcher, collateral_token_dispatcher, deposit_vault_dispatcher) = context(false);
 
-        let user_balance = token_dispatcher.balance_of(OWNER.try_into().unwrap());
-        cheat_caller_address(token_dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
+        let user_balance = collateral_token_dispatcher.balance_of(OWNER.try_into().unwrap());
+        cheat_caller_address(collateral_token_dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
 
-        token_dispatcher.approve(dispatcher.contract_address, user_balance);
+        collateral_token_dispatcher.approve(dispatcher.contract_address, user_balance);
 
         cheat_caller_address(dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
 
-        let token_address = token_dispatcher.contract_address;
+        let token_address = collateral_token_dispatcher.contract_address;
         dispatcher
             .deposit(OWNER.try_into().unwrap(), 100_000_u256 * fast_power(10, 18), token_address);
 
         let token_vault = IERC20Dispatcher { contract_address: dispatcher.contract_address };
 
-        println!("token_vault.contract_address: {:?}", token_vault.contract_address);
         let balance_of_user = token_vault.balance_of(OWNER);
+
+        println!("balance_of_user: {}", balance_of_user);
+        assert_eq!(balance_of_user, 100_000_u256 * fast_power(10, 18));
+
+        let balance_of_deposit = collateral_token_dispatcher.balance_of(dispatcher.contract_address);
+        println!("balance_of_deposit: {}", balance_of_deposit);
+        assert_eq!(balance_of_deposit, 100_000_u256 * fast_power(10, 18));
+
+        cheat_caller_address(dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
+
+        dispatcher
+            .withdraw(OWNER.try_into().unwrap(), 100_000_u256 * fast_power(10, 18), token_address);
+        let balance_of_user_after = token_vault.balance_of(OWNER);
+        println!("balance_of_user_after: {}", balance_of_user_after);
+        assert_eq!(balance_of_user_after, 0);
+        assert_eq!(collateral_token_dispatcher.balance_of(OWNER), user_balance);
+    }
+
+    #[test]
+    fn test_stablecoin_with_vault() {
+        let (dispatcher, collateral_token_dispatcher, deposit_vault_dispatcher) = context(false);
+
+        let user_balance = collateral_token_dispatcher.balance_of(OWNER.try_into().unwrap());
+        cheat_caller_address(collateral_token_dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
+
+        collateral_token_dispatcher.approve(dispatcher.contract_address, user_balance);
+
+        cheat_caller_address(dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
+
+        let token_address = collateral_token_dispatcher.contract_address;
+
+
+        let dispatcher_admin = IAdminVaultDispatcher { contract_address: dispatcher.contract_address };
+        cheat_caller_address(dispatcher_admin.contract_address, OWNER, CheatSpan::TargetCalls(1));
+
+        dispatcher_admin.set_deposit_vault(deposit_vault_dispatcher.contract_address, true);
+        cheat_caller_address(dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
+
+        dispatcher
+            .deposit(OWNER.try_into().unwrap(), 100_000_u256 * fast_power(10, 18), token_address);
+
+        let token_vault = IERC20Dispatcher { contract_address: dispatcher.contract_address };
+
+        let balance_of_user = token_vault.balance_of(OWNER);
+
+        let balance_of_deposit = collateral_token_dispatcher.balance_of(deposit_vault_dispatcher.contract_address);
+        println!("balance_of_deposit: {}", balance_of_deposit);
+        assert_eq!(balance_of_deposit, 100_000_u256 * fast_power(10, 18));
 
         println!("balance_of_user: {}", balance_of_user);
         assert_eq!(balance_of_user, 100_000_u256 * fast_power(10, 18));
@@ -129,8 +193,15 @@ pub mod pegged_tests {
         dispatcher
             .withdraw(OWNER.try_into().unwrap(), 100_000_u256 * fast_power(10, 18), token_address);
         let balance_of_user_after = token_vault.balance_of(OWNER);
+        let balance_of_deposit_after = token_vault.balance_of(deposit_vault_dispatcher.contract_address);
         println!("balance_of_user_after: {}", balance_of_user_after);
+        println!("balance_of_deposit_after: {}", balance_of_deposit_after);
+
+        let balance_collateral_of_deposit_after = collateral_token_dispatcher.balance_of(deposit_vault_dispatcher.contract_address);
+        println!("balance_collateral_of_deposit_after: {}", balance_collateral_of_deposit_after);
+
         assert_eq!(balance_of_user_after, 0);
-        assert_eq!(token_dispatcher.balance_of(OWNER), user_balance);
+        assert_eq!(balance_of_deposit_after, 0);
+        assert_eq!(collateral_token_dispatcher.balance_of(OWNER), user_balance);
     }
 }
