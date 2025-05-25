@@ -21,20 +21,14 @@ export const PeggedList: React.FC = () => {
     }>(AUSD_TOKEN_AVAILABLE[0]);
 
 
-    const [pool, setPool] = useState<'aUSD' | 'aETH' | "aBTC">('aUSD');
+    const [pool, setPool] = useState<'aUSD' | 'aETH' | "aBTC">('aETH');
 
     return (
         <div className="flex flex-col gap-4 p-6 rounded-lg">
 
             <div className="flex flex-col gap-4">
                 <div className="flex gap-4">
-                    <button
-                        onClick={() => setPool('aUSD')}
-                        className={`px-4 py-2 rounded-lg ${pool === 'aUSD' ? 'bg-blue-600' : 'bg-gray-700'
-                            }`}
-                    >
-                        aUSD
-                    </button>
+
                     <button
                         onClick={() => setPool('aETH')}
                         className={`px-4 py-2 rounded-lg ${pool === 'aETH' ? 'bg-blue-600' : 'bg-gray-700'
@@ -49,6 +43,14 @@ export const PeggedList: React.FC = () => {
                     >
                         aBTC
                     </button>
+                    <button
+                        onClick={() => setPool('aUSD')}
+                        className={`px-4 py-2 rounded-lg ${pool === 'aUSD' ? 'bg-blue-600' : 'bg-gray-700'
+                            }`}
+                    >
+                        aUSD
+                    </button>
+
                 </div>
 
 

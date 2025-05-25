@@ -41,7 +41,7 @@ const DEFAULT_TOKENS: TokenSelection[] = [
 ];
 
 const MintStablecoin = ({
-  title = 'Mint from BTC',
+  title = 'Mint abUSD',
   tokens = DEFAULT_TOKENS,
   selectedToken = DEFAULT_TOKENS[0],
   mintContractAddress = '0x...',
