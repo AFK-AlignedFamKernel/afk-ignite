@@ -5,3 +5,11 @@ export enum GiftType {
   'EXTERNAL_PRIVATE_KEY',
   'API',
 }
+
+export interface TokenSelection {
+  symbol: string;
+  address: string;
+  decimals: number;
+  icon: string;
+  ticker_id: string;
+}
