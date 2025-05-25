@@ -63,11 +63,11 @@ export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
     // }
 
     return (
-        <div className="flex flex-col gap-4 p-6 bg-gray-800 rounded-lg">
+        <div className="flex flex-col gap-4 p-6 rounded-lg">
 
             {!account?.address &&
 
-                <div className="flex flex-col items-center gap-4 p-6 bg-gray-800 rounded-lg">
+                <div className="flex flex-col items-center gap-4 p-6  rounded-lg">
                     <h2 className="text-xl font-bold">Connect Wallet to Continue</h2>
                     <WalletConnectButton />
 

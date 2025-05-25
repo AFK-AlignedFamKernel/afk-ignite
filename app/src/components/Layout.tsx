@@ -11,6 +11,8 @@ import Image from 'next/image';
 import { useUIStore } from '@/store/uiStore';
 import { AvatarIcon } from './small/icons';
 import AccordionMenu from './small/AccordionMenu';
+import { useColorModeValue } from '@chakra-ui/react';
+import MobileBottomBar from './MobileBottomBar';
 
 interface LayoutProps {
   children: ReactNode;
@@ -24,6 +26,15 @@ const Layout = ({ children }: LayoutProps) => {
   const { showToast, showModal } = useUIStore()
   const [isLoading, setIsLoading] = useState(false);
   const router = typeof window === 'undefined' ? null : useRouter();
+
+  const bgColor = useColorModeValue('white', '#111418');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const secondaryTextColor = useColorModeValue('gray.600', '#9cabba');
+  const borderColor = useColorModeValue('gray.200', '#3b4754');
+  const bottomBarBg = useColorModeValue('gray.50', '#1b2127');
+  const bottomBarBorder = useColorModeValue('gray.200', '#283039');
+  const activeTabColor = useColorModeValue('blue.600', 'blue.400');
+  const inactiveTabColor = useColorModeValue('gray.600', '#9cabba');
 
   const { address } = useAccount();
   useEffect(() => {
@@ -414,6 +425,10 @@ const Layout = ({ children }: LayoutProps) => {
             {/* <RightBarDesktop /> */}
 
           </div>
+
+
+          <MobileBottomBar />
+       
 
 
         </div>

@@ -29,7 +29,7 @@ const DEFAULT_COLLATERAL = {
   icon: '₿'
 };
 
-const MintStablecoin = ({
+const Bridge = ({
   title = 'Mint from BTC',
   collateralToken = DEFAULT_COLLATERAL,
   mintContractAddress = '0x...', // Add your default mint contract address
@@ -223,4 +223,4 @@ const MintStablecoin = ({
   );
 };
 
-export default MintStablecoin;
+export default Bridge;
