@@ -13,6 +13,7 @@ import { AvatarIcon } from './small/icons';
 import AccordionMenu from './small/AccordionMenu';
 import { useColorModeValue } from '@chakra-ui/react';
 import MobileBottomBar from './MobileBottomBar';
+import Connect from './account/connect';
 
 interface LayoutProps {
   children: ReactNode;
@@ -189,7 +190,7 @@ const Layout = ({ children }: LayoutProps) => {
           </button>
         </div> */}
         <div className="flex items-center gap-4">
-          <button className="btn btn-blue" onClick={() => showModal(<WalletConnectButton />)}>
+          <button className="btn btn-blue" onClick={() => showModal(<Connect />)}>
             <AvatarIcon width={20} height={20} />
           </button>
           <button
@@ -304,7 +305,7 @@ const Layout = ({ children }: LayoutProps) => {
               Mint
             </Link>
             <div className="flex items-center gap-4">
-              <button className="btn btn-gradient-green" onClick={() => showModal(<WalletConnectButton />)}>
+              <button className="btn btn-gradient-green" onClick={() => showModal(<Connect />)}>
                 Connect
               </button>
 
@@ -428,7 +429,7 @@ const Layout = ({ children }: LayoutProps) => {
 
 
           <MobileBottomBar />
-       
+
 
 
         </div>

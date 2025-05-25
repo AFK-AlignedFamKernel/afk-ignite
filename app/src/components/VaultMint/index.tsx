@@ -25,10 +25,11 @@ export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
     const { isConnected, account } = useAccount();
     const { showModal, showToast } = useUIStore();
     const [selectedToken, setSelectedToken] = useState(availableTokens[0]);
-    const [amount, setAmount] = useState('');
+    const [amount, setAmount] = useState(0);
     const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
 
-    
+
+    const [amountReceived, setAmountReceived] = useState(0);
 
     const onMint = async (tokenAddress: string, amount: string) => {
         showToast({ message: 'Withdrawing', type: 'success' });
@@ -43,9 +44,9 @@ export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
         if (!amount || !selectedToken) return;
         try {
             if (activeTab === 'deposit') {
-                await onMint(selectedToken.address, amount);
+                await onMint(selectedToken.address, amount.toString());
             } else {
-                await onWithdraw(selectedToken.address, amount);
+                await onWithdraw(selectedToken.address, amount.toString());
             }
         } catch (error) {
             console.error('Action error:', error);
@@ -94,29 +95,38 @@ export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
             </div>
 
 
-            <div className="flex flex-col gap-2">
-                <label className="text-sm text-gray-400">Select Token</label>
-                <select
-                    value={selectedToken?.address}
-                    onChange={(e) => {
-                        const token = availableTokens?.find(t => t.address === e.target.value);
-                        if (token) setSelectedToken(token);
-                    }}
-                    className="p-2 bg-gray-700 rounded-lg text-white"
-                >
-                    {availableTokens?.map((token) => (
-                        <option key={token.address} value={token.address}>
-                            {token.symbol}
-                        </option>
-                    ))}
-                </select>
-            </div>
+
+            {activeTab === 'deposit' && (
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm text-gray-400">Select Token</label>
+                    <select
+                        value={selectedToken?.address}
+                        onChange={(e) => {
+                            const token = availableTokens?.find(t => t.address === e.target.value);
+                            if (token) setSelectedToken(token);
+                        }}
+                        className="p-2 bg-gray-700 rounded-lg text-white"
+                    >
+                        {availableTokens?.map((token) => (
+                            <option key={token.address} value={token.address}>
+                                {token.symbol}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            {activeTab === 'withdraw' && (
+                <div>
+                </div>
+
+            )}
 
             <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                     <label className="text-sm text-gray-400">Amount</label>
                     <button
-                        onClick={() => setAmount(selectedToken.maxAmount)}
+                        onClick={() => setAmount(Number(selectedToken.maxAmount))}
                         className="text-sm text-blue-400 hover:text-blue-300"
                     >
                         MAX
@@ -125,10 +135,14 @@ export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
                 <input
                     type="number"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={(e) => setAmount(Number(e.target.value))}
                     placeholder="0.0"
                     className="p-2 bg-gray-700 rounded-lg text-white"
                 />
+            </div>
+
+            <div>
+                <p className="text-sm text-gray-400"> Amount received in coin: {amountReceived.toFixed(2)}</p>
             </div>
 
             <button
