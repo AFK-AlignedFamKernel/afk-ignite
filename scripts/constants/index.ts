@@ -1,4 +1,22 @@
-import { constants } from "starknet";
+import { constants, getChecksumAddress } from "starknet";
+
+export const AUSD_ADDRESSES = {
+  [constants.StarknetChainId.SN_MAIN]: '', // TODO: Add mainnet escrow address
+
+  // aUSD Contract with internal deposit/withdrawal
+  // [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+  //   '0x17b3ce9c2c328ff50bd09cf349a8455ffc5d8c0e776964795b2024cf55761dd',
+  // ),
+  // [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+  //   '0x2c5f5088afc743cee817c3b080faac6af40b83cb21a4db30f794fc3d55928f3',
+  // ),
+  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+    '0x1d0a23723fa124e2aebc152498ca30b6ac7fa1f1224707172b868a44293a659',
+  ),
+
+
+
+};
 
 export const ACCOUNT_TEST_PROFILE = {
   alice: {
@@ -36,15 +54,6 @@ export const ESCROW_ADDRESS = {
     "0x7323351c9e497ef4cc59cfdacdc8ba7b07c6b4aaeb07e78dfda0988f6e8e3ee",
 };
 
-export const KEYS_ADDRESS = {
-  [constants.StarknetChainId.SN_SEPOLIA]:
-    "0x5e89dc74f1a40d7814966b028a9b1853d39006a954b27828a9de7e333ec8119",
-};
-
-export const NAMESPACE_ADDRESS = {
-  [constants.StarknetChainId.SN_SEPOLIA]:
-    "0x5e89dc74f1a40d7814966b028a9b1853d39006a954b27828a9de7e333ec8119",
-};
 export const ERROR_MESSAGES = {
   EVENT_NOTE_INVALID: {
     label: "EVENT_NOTE_INVALID",
@@ -60,12 +69,22 @@ export const ERROR_MESSAGES = {
   },
 };
 
+export const USDC_ADDRESSES = {
+  [constants.StarknetChainId.SN_MAIN]: getChecksumAddress(
+    '0x053b40A647CEDfca6cA84f542A0fe36736031905A9639a7f19A3C1e66bFd5080',
+  ),
+  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+    '0x053b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080',
+  ),
+};
+
 export const TOKENS_ADDRESS = {
   SEPOLIA: {
     ETH: "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
     // TEST: "0x00148a15f9fbf4c015b927bf88608fbafb6d149abdd5ef5b3e3b296e6ac999a4",
 
     STRK: "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+    // USDC: "0x02f37c3e00e75ee4135b32bb60c37e0599af264076376a618f138d2f9929ac74",
     USDC: "0x02f37c3e00e75ee4135b32bb60c37e0599af264076376a618f138d2f9929ac74",
     TEST: "0x00148a15f9fbf4c015b927bf88608fbafb6d149abdd5ef5b3e3b296e6ac999a4",
     BIG_TOKEN:
@@ -106,20 +125,8 @@ export const JEDISWAP_V2_FACTORY = {
 
 export const LAUNCHPAD_ADDRESS = {
   [constants.StarknetChainId.SN_MAIN]: "",
-  // [constants.StarknetChainId.SN_SEPOLIA]:"0x5cf19613d54ae5e7c229c87cc26322f2ff6c473d2183723010676b8337c0af3",
   [constants.StarknetChainId.SN_SEPOLIA]:
     "0x19084523bd7307c2169ee32a336be3f9d9eb6bf24197156cb6fc7a42feb7a5",
 };
 
-export const NOSTR_FI_SCORING_ADDRESS = {
-  // [constants.StarknetChainId.SN_SEPOLIA]: "0x78a022e6906c83e049a30f7464b939b831ecbe47029480d7e89684f20c8d263",
-  [constants.StarknetChainId.SN_SEPOLIA]:
-    "0x7323351c9e497ef4cc59cfdacdc8ba7b07c6b4aaeb07e78dfda0988f6e8e3ee",
-};
 
-
-export const CLASS_HASH_NOSTR_FI_SCORING = {
-  // [constants.StarknetChainId.SN_SEPOLIA]: "0x78a022e6906c83e049a30f7464b939b831ecbe47029480d7e89684f20c8d263",
-  [constants.StarknetChainId.SN_SEPOLIA]:
-    "0x7323351c9e497ef4cc59cfdacdc8ba7b07c6b4aaeb07e78dfda0988f6e8e3ee",
-};

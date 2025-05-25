@@ -15,7 +15,7 @@ mod DepositVault {
     use starknet::storage::{
         Map, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess,
     };
-    use starknet::get_caller_address;
+    use starknet::{get_caller_address, get_contract_address};
     use super::{ContractAddress};
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
@@ -89,6 +89,8 @@ mod DepositVault {
         fn transfer_from_operator(ref self: ContractState, token_address: ContractAddress, amount: u256, recipient: ContractAddress) -> bool {
             let caller = get_caller_address();
             let operator = self.accesscontrol.has_role(OPERATOR_ROLE, caller);
+            println!("operator: {:?}", operator);
+            assert!(operator, "Caller is not an operator");
             if !operator {
                 return false;
             }
@@ -96,6 +98,13 @@ mod DepositVault {
             let erc20_dispatcher = IERC20Dispatcher {
                 contract_address: token_address,
             };
+
+            let balance_of_token = erc20_dispatcher.balance_of(get_contract_address());
+
+            assert!(balance_of_token >= amount, "Insufficient balance");
+            println!("balance_of_token: {}", balance_of_token);
+            println!("amount: {}", amount);
+            println!("recipient: {:?}", recipient);
 
             erc20_dispatcher.transfer(recipient, amount);
             // erc20_dispatcher.transfer_from(caller, recipient, amount);

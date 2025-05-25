@@ -338,10 +338,9 @@ mod PeggedCoin {
             //     erc20_quote.transfer_from(caller, get_contract_address(), fee_amount);
             // }
 
-            println!("fee_amount deposit: {}", fee_amount);
-            println!("amount_minus_fees: {}", amount_minus_fees);
-
-            println!("is_deposit_vault_enabled: {}", self.is_deposit_vault_enabled.read());
+            // println!("fee_amount deposit: {}", fee_amount);
+            // println!("amount_minus_fees: {}", amount_minus_fees);
+            // println!("is_deposit_vault_enabled: {}", self.is_deposit_vault_enabled.read());
             // Deposit to vault if enabled
             // Otherwise deposit to contract
             if self.is_deposit_vault_enabled.read() && !self.deposit_vault.read().is_zero() {
@@ -401,12 +400,12 @@ mod PeggedCoin {
                 fee_amount = amount * fee_withdraw_percentage / 10_000;
             }
 
-            println!(
-                "self.is_deposit_vault_enabled.read(): {}", self.is_deposit_vault_enabled.read(),
-            );
-            println!("fee_amount: {}", fee_amount);
-            println!("amount: {}", amount);
-            println!("amount - fee_amount: {}", amount - fee_amount);
+            // println!(
+            //     "self.is_deposit_vault_enabled.read(): {}", self.is_deposit_vault_enabled.read(),
+            // );
+            // println!("fee_amount: {}", fee_amount);
+            // println!("amount: {}", amount);
+            // println!("amount - fee_amount: {}", amount - fee_amount);
 
             let amount_minus_fees = amount - fee_amount;
 
@@ -430,10 +429,12 @@ mod PeggedCoin {
                 .entry(token_address)
                 .write(amount_deposited_per_user_token - amount_minus_fees);
 
-            println!("amount_minus_fees: {}", amount_minus_fees);
-            println!("fee_amount: {}", fee_amount);
+            // println!("amount_minus_fees: {}", amount_minus_fees);
+            // println!("fee_amount: {}", fee_amount);
 
             if self.is_deposit_vault_enabled.read() && !self.deposit_vault.read().is_zero() {
+                // println!("withdraw vault transfer");
+                // println!("deposit_vault.transfer_from_operator(token_address, amount_minus_fees, recipient);");
                 let address_vault = self.deposit_vault.read();
                 let deposit_vault = IDepositVaultDispatcher { contract_address: address_vault };
                 if fee_amount > 0 { // deposit_vault.transfer_from_operator(token_address, fee_amount,

@@ -11,6 +11,9 @@ import Image from 'next/image';
 import { useUIStore } from '@/store/uiStore';
 import { AvatarIcon } from './small/icons';
 import AccordionMenu from './small/AccordionMenu';
+import { useColorModeValue } from '@chakra-ui/react';
+import MobileBottomBar from './MobileBottomBar';
+import Connect from './account/connect';
 
 interface LayoutProps {
   children: ReactNode;
@@ -24,6 +27,15 @@ const Layout = ({ children }: LayoutProps) => {
   const { showToast, showModal } = useUIStore()
   const [isLoading, setIsLoading] = useState(false);
   const router = typeof window === 'undefined' ? null : useRouter();
+
+  const bgColor = useColorModeValue('white', '#111418');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const secondaryTextColor = useColorModeValue('gray.600', '#9cabba');
+  const borderColor = useColorModeValue('gray.200', '#3b4754');
+  const bottomBarBg = useColorModeValue('gray.50', '#1b2127');
+  const bottomBarBorder = useColorModeValue('gray.200', '#283039');
+  const activeTabColor = useColorModeValue('blue.600', 'blue.400');
+  const inactiveTabColor = useColorModeValue('gray.600', '#9cabba');
 
   const { address } = useAccount();
   useEffect(() => {
@@ -178,7 +190,7 @@ const Layout = ({ children }: LayoutProps) => {
           </button>
         </div> */}
         <div className="flex items-center gap-4">
-          <button className="btn btn-blue" onClick={() => showModal(<WalletConnectButton />)}>
+          <button className="btn btn-blue" onClick={() => showModal(<Connect />)}>
             <AvatarIcon width={20} height={20} />
           </button>
           <button
@@ -236,7 +248,7 @@ const Layout = ({ children }: LayoutProps) => {
               <Icon name="CrownIcon" size={24} />
               Stablecoin</Link>
 
-            <Link href="/mint" className="sidebar-nav-item" onClick={closeSidebar}>
+            <Link href="/mint-stablecoin" className="sidebar-nav-item" onClick={closeSidebar}>
               <svg className="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect
                   x="3"
@@ -293,7 +305,7 @@ const Layout = ({ children }: LayoutProps) => {
               Mint
             </Link>
             <div className="flex items-center gap-4">
-              <button className="btn btn-gradient-green" onClick={() => showModal(<WalletConnectButton />)}>
+              <button className="btn btn-gradient-green" onClick={() => showModal(<Connect />)}>
                 Connect
               </button>
 
@@ -414,6 +426,10 @@ const Layout = ({ children }: LayoutProps) => {
             {/* <RightBarDesktop /> */}
 
           </div>
+
+
+          <MobileBottomBar />
+
 
 
         </div>
