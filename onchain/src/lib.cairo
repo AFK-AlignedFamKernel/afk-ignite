@@ -3,6 +3,7 @@ pub mod peggedcoin;
 pub mod oracle;
 pub mod mint_stablecoin;
 pub mod deposit_vault;
+pub mod oracle_helpers;
 pub mod errors;
 
 pub mod interfaces {
@@ -14,4 +15,5 @@ pub mod interfaces {
 
 pub mod tests {
     pub mod peggedcoin_tests;
+    pub mod stablecoin_tests;
 }

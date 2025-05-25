@@ -1,10 +1,19 @@
 #[starknet::contract]
 mod MintStablecoin {
+    use afk_ignite::interfaces::deposit_vault::{
+        IDepositVault, IDepositVaultDispatcher, IDepositVaultDispatcherTrait,
+    };
     use afk_ignite::interfaces::mint_stablecoin::{
         ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IMintStablecoin, MINTER_ROLE,
-        MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
-        TokenCollateral,
+        MintDepositEvent, OPERATOR_ROLE, TokenCollateral, WithdrawnEvent,
     };
+    use afk_ignite::oracle_helpers::{
+        compute_twap, compute_volatility, get_asset_conversion_rate, get_asset_price_average,
+        get_asset_price_median,
+    };
+    use alexandria_math::fast_power::fast_power;
+    use core::array::Array;
+    use core::num::traits::Zero;
     use openzeppelin::access::accesscontrol::AccessControlComponent;
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::introspection::src5::SRC5Component;
@@ -14,6 +23,11 @@ mod MintStablecoin {
     use openzeppelin::token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
     use openzeppelin::upgrades::UpgradeableComponent;
     use openzeppelin::upgrades::interface::IUpgradeable;
+    use pragma_lib::abi::{
+        IPragmaABIDispatcher, IPragmaABIDispatcherTrait, IPragmaABISafeDispatcherTrait,
+        PragmaPricesResponse,
+    };
+    use pragma_lib::types::DataType;
     use starknet::storage::{
         Map, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess,
     };
@@ -62,17 +76,21 @@ mod MintStablecoin {
     #[storage]
     struct Storage {
         pragma_contract: ContractAddress,
+        summary_stats_address: ContractAddress,
         token_id: felt252,
         decimals: u8,
         token_address: ContractAddress,
         token_accepted: Map<ContractAddress, bool>,
         token_id_accepted: Map<felt252, bool>,
+        token_id_address: Map<ContractAddress, felt252>,
+        token_address_per_id: Map<felt252, ContractAddress>,
         token_collateral: Map<ContractAddress, TokenCollateral>,
         is_fees_deposit: bool,
         is_fees_withdraw: bool,
         fee_deposit_percentage: u256,
         fee_withdraw_percentage: u256,
         total_minted_amount: u256,
+        total_deposited_amount: u256,
         mint_per_user: Map<ContractAddress, u256>,
         mint_per_token: Map<ContractAddress, u256>,
         deposit_token_per_user: Map<ContractAddress, Map<ContractAddress, u256>>,
@@ -110,9 +128,12 @@ mod MintStablecoin {
     fn constructor(
         ref self: ContractState,
         pragma_contract: ContractAddress,
+        summary_stats_address: ContractAddress,
         recipient: ContractAddress,
-        decimals: u8,
         token_address: ContractAddress,
+        decimals: u8,
+        name: ByteArray,
+        symbol: ByteArray,
         token_id: felt252,
     ) {
         let caller = get_caller_address();
@@ -121,7 +142,11 @@ mod MintStablecoin {
         self._set_decimals(decimals);
 
         self.pragma_contract.write(pragma_contract);
+        self.summary_stats_address.write(summary_stats_address);
         self.token_id.write(token_id);
+        self.token_id_address.entry(token_address).write(token_id);
+        self.token_address_per_id.entry(token_id).write(token_address);
+        self.token_id_accepted.entry(token_id).write(true);
         // AccessControl-related initialization
         self.ownable.initializer(caller);
 
@@ -161,7 +186,7 @@ mod MintStablecoin {
             self.erc20.ERC20_symbol.read()
         }
     }
- 
+
     #[abi(embed_v0)]
     impl IMintStablecoinImpl of IMintStablecoin<ContractState> {
         fn deposit(
@@ -263,6 +288,14 @@ mod MintStablecoin {
             let token_collateral = self.token_collateral.entry(token_address).read();
             assert(token_collateral.is_accepted, errors::TOKEN_NOT_ACCEPTED);
 
+            let token_id_address = self.token_id_address.entry(token_address).read();
+            assert(!token_id_address.is_zero(), errors::TOKEN_ID_NOT_KNOWN);
+
+            let token_id_accepted = self.token_id_accepted.entry(self.token_id.read()).read();
+            assert(token_id_accepted, errors::TOKEN_NOT_ACCEPTED_BY_ID);
+
+            let token_address_per_id = self.token_address_per_id.entry(self.token_id.read()).read();
+
             let amount_deposited_per_user = self.mint_per_user.entry(caller).read();
             let amount_deposited_per_token = self.mint_per_token.entry(token_address).read();
             let amount_deposited_per_user_token = self
@@ -280,17 +313,22 @@ mod MintStablecoin {
                 .entry(token_address)
                 .write(amount_deposited_per_user_token + amount);
 
-
-            let deposit_amount_per_user_token = self.deposit_token_per_user.entry(caller).entry(token_address).read();
+            let deposit_amount_per_user_token = self
+                .deposit_token_per_user
+                .entry(caller)
+                .entry(token_address)
+                .read();
             // println!("deposit_amount_per_user_token: {}", deposit_amount_per_user_token);
-            self.total_minted_amount.write(self.total_minted_amount.read() + deposit_amount_per_user_token);
+            self
+                .total_minted_amount
+                .write(self.total_minted_amount.read() + deposit_amount_per_user_token);
 
             let erc20_quote = IERC20Dispatcher { contract_address: token_address };
             erc20_quote.transfer_from(caller, get_contract_address(), amount);
 
             // deducted fees if 1=1
             // TODO fees per token
-   
+
             let mut fee_amount = 0;
             let fee_deposit_percentage = self.fee_deposit_percentage.read();
             if self.is_fees_deposit.read() {
@@ -298,6 +336,33 @@ mod MintStablecoin {
                 erc20_quote.transfer_from(caller, get_contract_address(), fee_amount);
             }
 
+            let amount_to_mint = 0;
+
+            let oracle_address = self.pragma_contract.read();
+            let oracle_stats_address = self.summary_stats_address.read();
+            let expiration_timestamp = 1691395615; //in seconds
+            // let output = get_asset_price_median(oracle_address,
+            // DataType::SpotEntry(token_id_address));
+            let arrays_sources = array![];
+            let sources = arrays_sources.span();
+            let output = get_asset_price_average(
+                oracle_address, DataType::SpotEntry(token_id_address), sources,
+            );
+            println!("price: {}", output.price);
+            println!("decimals: {}", output.decimals);
+            println!("last_updated_timestamp: {}", output.last_updated_timestamp);
+            println!("num_sources_aggregated: {}", output.num_sources_aggregated);
+
+            let price = output.price;
+            let decimals = output.decimals;
+            let price_with_precision = price * fast_power(10_u128, decimals.try_into().unwrap());
+
+            println!("price_with_precision: {}", price_with_precision);
+
+            let price_u256: u256 = price_with_precision.try_into().unwrap();
+            println!("price_u256: {}", price_u256);
+            // let price_token = get_asset_price_average(self.pragma_contract.read(), DataType::USD,
+            // token_id_address);
             // let token_collateral = self.token_collateral.entry(token_address).read();
             // let is_fees_deposit_token = token_collateral.is_fees_deposit;
             // let fee_deposit_percentage_token = token_collateral.fee_deposit_percentage;
@@ -306,7 +371,11 @@ mod MintStablecoin {
             //     erc20_quote.transfer_from(caller, get_contract_address(), fee_amount);
             // }
 
-            let amount_to_mint = amount - fee_amount;
+            // let amount_to_mint = amount - fee_amount;
+            let amount_to_mint = amount * price_u256;
+            // let amount_to_mint_precision = amount * price_with_precision;
+            println!("amount_to_mint: {}", amount_to_mint);
+            // println!("amount_to_mint_precision: {}", amount_to_mint_precision);
             self.erc20.mint(recipient, amount_to_mint);
 
             self
@@ -315,7 +384,7 @@ mod MintStablecoin {
                         is_fees_deposit: self.is_fees_deposit.read(),
                         fee_deposit_percentage: fee_deposit_percentage,
                         amount_send: amount,
-                        amount_received: amount,
+                        amount_received: amount_to_mint,
                         token_address: token_address,
                         recipient: recipient,
                         caller: caller,
