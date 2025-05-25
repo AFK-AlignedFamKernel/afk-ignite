@@ -7,6 +7,8 @@
     "test": "mocha",
     "start": "ts-node src/index.ts",
     "deploy:escrow": "ts-node ./deploy/escrow.ts",
+    "deploy:peggedcoin": "ts-node ./deploy/peggedcoin.ts",
+    "deploy:mintstablecoin": "ts-node ./deploy/mintstablecoin.ts",
     "test:stablecoin": "ts-node ./tests/stablecoin.ts",
     "dev": "ts-node index.ts",
     "relay": "ts-node src/index.ts",

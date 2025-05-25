@@ -42,6 +42,7 @@ pub mod stablecoin_tests {
 
     
 
+    // Mainnet
     fn get_summary_stats_address() -> ContractAddress {
         let SUMMARY_STATS_ADDRESS: ContractAddress = contract_address_const::<
             0x6421fdd068d0dc56b7f5edc956833ca0ba66b2d5f9a8fea40932f226668b5c4,
@@ -54,6 +55,10 @@ pub mod stablecoin_tests {
             0x2a85bd616f912537c50a49a4076db02c00b29b2cdc8a197ce92ed1837fa875b,
         >()
     }
+
+    // Sepolia
+    // 0x36031daa264c24520b11d93af622c848b2499b66b41d611bac95e13cfca131a
+
     fn deploy_deposit_vault(initial_recipient: ContractAddress) -> ContractAddress {
         let mut calldata = array![];
         initial_recipient.serialize(ref calldata);

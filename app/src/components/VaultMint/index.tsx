@@ -10,8 +10,8 @@ interface VaultMintProps {
     availableTokens: {
         address: string;
         symbol: string;
-        decimals: number;
-        maxAmount: string;
+        decimals?: number;
+        maxAmount?: string;
     }[];
     contractAddress?: string;
     //   onMint: (tokenAddress: string, amount: string) => Promise<void>;

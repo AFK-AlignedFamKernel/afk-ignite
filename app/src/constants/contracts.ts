@@ -1,4 +1,43 @@
-import {constants, getChecksumAddress} from 'starknet';
+import { constants, getChecksumAddress } from 'starknet';
+
+
+export const AUSD_ADDRESSES = {
+  [constants.StarknetChainId.SN_MAIN]: '', // TODO: Add mainnet escrow address
+
+  // aUSD Contract with internal deposit/withdrawal
+  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+    '0x17b3ce9c2c328ff50bd09cf349a8455ffc5d8c0e776964795b2024cf55761dd',
+  ),
+};
+
+export const USD_ADDRESSES = {
+  [constants.StarknetChainId.SN_MAIN]: '0x02f37c3e00e75ee4135b32bb60c37e0599af264076376a618f138d2f9929ac74', // TODO: Add mainnet escrow address
+  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+    '0x02f37c3e00e75ee4135b32bb60c37e0599af264076376a618f138d2f9929ac74',
+  ),
+}
+
+export const AUSD_TOKEN_AVAILABLE = [
+  {
+    address: USD_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA],
+    symbol: 'USDC',
+    decimals: 6,
+  },
+  {
+    address: AUSD_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA],
+    symbol: 'aUSD',
+    decimals: 6,
+  },
+]
+
+
+
+export const AETH_ADDRESSES = {
+  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+    '0x17b3ce9c2c328ff50bd09cf349a8455ffc5d8c0e776964795b2024cf55761dd',
+  ),
+
+}
 
 export const ESCROW_ADDRESSES = {
   [constants.StarknetChainId.SN_MAIN]: '', // TODO: Add mainnet escrow address
