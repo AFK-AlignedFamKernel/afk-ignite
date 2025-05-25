@@ -434,6 +434,8 @@ mod PeggedCoin {
             println!("fee_amount: {}", fee_amount);
 
             if self.is_deposit_vault_enabled.read() && !self.deposit_vault.read().is_zero() {
+                println!("withdraw vault transfer");
+                println!("deposit_vault.transfer_from_operator(token_address, amount_minus_fees, recipient);");
                 let address_vault = self.deposit_vault.read();
                 let deposit_vault = IDepositVaultDispatcher { contract_address: address_vault };
                 if fee_amount > 0 { // deposit_vault.transfer_from_operator(token_address, fee_amount,

@@ -109,13 +109,13 @@ pub mod pegged_tests {
         );
 
         let dispatcher = IPeggedCoinDispatcher { contract_address };
-
-
         let deposit_vault_address = deploy_deposit_vault(OWNER);
 
         let deposit_vault_dispatcher = IDepositVaultDispatcher { contract_address: deposit_vault_address };
-
-        cheat_caller_address(contract_address, USER, CheatSpan::TargetCalls(1));
+        cheat_caller_address(deposit_vault_dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
+        deposit_vault_dispatcher.set_operator(contract_address);
+        cheat_caller_address(contract_address, OWNER, CheatSpan::TargetCalls(1));
+      
         (dispatcher, collateral_token_dispatcher, deposit_vault_dispatcher)
     }
 
