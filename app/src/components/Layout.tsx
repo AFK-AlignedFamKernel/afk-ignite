@@ -236,7 +236,7 @@ const Layout = ({ children }: LayoutProps) => {
               <Icon name="CrownIcon" size={24} />
               Stablecoin</Link>
 
-            <Link href="/mint" className="sidebar-nav-item" onClick={closeSidebar}>
+            <Link href="/mint-stablecoin" className="sidebar-nav-item" onClick={closeSidebar}>
               <svg className="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect
                   x="3"
