@@ -156,6 +156,46 @@ pub mod pegged_tests {
     }
 
     #[test]
+    fn test_peggedcoin_mint_multi_user() {
+        let (dispatcher, collateral_token_dispatcher, deposit_vault_dispatcher) = context(false);
+        cheat_caller_address(collateral_token_dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
+
+        collateral_token_dispatcher.transfer(USER.try_into().unwrap(), 100_000_u256 * fast_power(10, 18));
+        let user_balance = collateral_token_dispatcher.balance_of(USER.try_into().unwrap());
+
+
+        cheat_caller_address(collateral_token_dispatcher.contract_address, USER, CheatSpan::TargetCalls(1));
+
+        collateral_token_dispatcher.approve(dispatcher.contract_address, user_balance);
+
+        cheat_caller_address(dispatcher.contract_address, USER, CheatSpan::TargetCalls(1));
+
+        let token_address = collateral_token_dispatcher.contract_address;
+        dispatcher
+            .deposit(USER.try_into().unwrap(), 100_000_u256 * fast_power(10, 18), token_address);
+
+        let token_vault = IERC20Dispatcher { contract_address: dispatcher.contract_address };
+
+        let balance_of_user = token_vault.balance_of(USER);
+
+        println!("balance_of_user: {}", balance_of_user);
+        assert_eq!(balance_of_user, 100_000_u256 * fast_power(10, 18));
+
+        let balance_of_deposit = collateral_token_dispatcher.balance_of(dispatcher.contract_address);
+        println!("balance_of_deposit: {}", balance_of_deposit);
+        assert_eq!(balance_of_deposit, 100_000_u256 * fast_power(10, 18));
+
+        cheat_caller_address(dispatcher.contract_address, USER, CheatSpan::TargetCalls(1));
+
+        dispatcher
+            .withdraw(USER.try_into().unwrap(), 100_000_u256 * fast_power(10, 18), token_address);
+        let balance_of_user_after = token_vault.balance_of(USER);
+        println!("balance_of_user_after: {}", balance_of_user_after);
+        assert_eq!(balance_of_user_after, 0);
+        assert_eq!(collateral_token_dispatcher.balance_of(USER), user_balance);
+    }
+
+    #[test]
     fn test_peggedcoin_with_vault() {
         let (dispatcher, collateral_token_dispatcher, deposit_vault_dispatcher) = context(false);
 
