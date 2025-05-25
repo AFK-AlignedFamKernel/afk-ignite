@@ -10,11 +10,13 @@ export const usePeggedCoin = ({ contractAddress }: { contractAddress: string }) 
 
 
 
-    const handleDeposit = async (recipient: string, amount: string, tokenAddress: string) => {
+    const handleDeposit = async (recipient: string, amount: string, tokenAddress: string
+        , decimalsMintedCoin?: number,
+    ) => {
 
         try {
 
-            const amountUint256 = (formatFloatToUint256(Number(amount)) ?? Number(amount) * 10 ** 18);
+            const amountUint256 = (formatFloatToUint256(Number(amount), decimalsMintedCoin) ?? Number(amount) * 10 ** (decimalsMintedCoin ?? 18));
 
 
             const approveData = [

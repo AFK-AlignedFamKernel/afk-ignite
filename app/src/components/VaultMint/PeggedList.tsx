@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useAccount } from '@starknet-react/core';
 import { constants } from 'starknet';
 import { Icon } from '../small/icon-component';
-import { AUSD_TOKEN_AVAILABLE, AUSD_ADDRESSES, ETH_ADDRESSES, STRK_ADDRESSES } from '../../constants/contracts';
+import { AUSD_TOKEN_AVAILABLE, AUSD_ADDRESSES, ETH_ADDRESSES, STRK_ADDRESSES, AETH_ADDRESSES } from '../../constants/contracts';
+import { AETH_TOKEN_AVAILABLE } from '../../constants/contracts';
 import { useUIStore } from '@/store/uiStore';
 import { WalletConnectButton } from '../account/WalletConnectButton';
 import { VaultMint } from '.';
@@ -63,6 +64,15 @@ export const PeggedList: React.FC = () => {
                         contractAddress={AUSD_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA]}
                     />
 
+                )}
+
+                {pool === 'aETH' && (
+                    <VaultMint availableTokens={[
+                        AETH_TOKEN_AVAILABLE[0],
+                        // AETH_TOKEN_AVAILABLE[1],
+                    ]}
+                        contractAddress={AETH_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA]}
+                    />
                 )}
 
 

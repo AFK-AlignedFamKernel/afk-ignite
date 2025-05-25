@@ -14,6 +14,7 @@ interface VaultMintProps {
         symbol: string;
         decimals?: number;
         maxAmount?: string;
+        decimalsMintedCoin?:number;
     }[];
     contractAddress?: string;
     //   onMint: (tokenAddress: string, amount: string) => Promise<void>;
@@ -68,11 +69,15 @@ export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
         const fetchBalance = async () => {
             if (account?.address) {
                 const balanceToken = await handleFetchBalance(account?.address, "0", contractAddress ?? AUSD_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA]);
-                setBalanceToken(balanceToken);
+                setBalanceToken(
+                    Number(balanceToken) / 10 ** (selectedToken.decimalsMintedCoin ?? 18)
+                );
             }
+            console.log("balanceToken", balanceToken);
 
             if (selectedToken.address) {
                 const balanceCollateral = await handleBalanceCollateral(account?.address, "0", selectedToken.address);
+                console.log("balanceCollateral", balanceCollateral);
                 setBalanceCollateral(Number(balanceCollateral) / 10 ** selectedToken.decimals);
             }
         }
