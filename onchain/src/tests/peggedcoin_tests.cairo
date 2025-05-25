@@ -160,6 +160,7 @@ pub mod pegged_tests {
         let (dispatcher, collateral_token_dispatcher, deposit_vault_dispatcher) = context(false);
 
         let user_balance = collateral_token_dispatcher.balance_of(OWNER.try_into().unwrap());
+        println!("user_balance: {}", user_balance);
         cheat_caller_address(collateral_token_dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
 
         collateral_token_dispatcher.approve(dispatcher.contract_address, user_balance);
@@ -167,7 +168,6 @@ pub mod pegged_tests {
         cheat_caller_address(dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
 
         let token_address = collateral_token_dispatcher.contract_address;
-
 
         let dispatcher_admin = IAdminVaultDispatcher { contract_address: dispatcher.contract_address };
         cheat_caller_address(dispatcher_admin.contract_address, OWNER, CheatSpan::TargetCalls(1));
@@ -183,10 +183,10 @@ pub mod pegged_tests {
         let balance_of_user = token_vault.balance_of(OWNER);
 
         let balance_of_deposit = collateral_token_dispatcher.balance_of(deposit_vault_dispatcher.contract_address);
-        println!("balance_of_deposit: {}", balance_of_deposit);
+        println!("balance_of_deposit to vault: {}", balance_of_deposit);
         assert_eq!(balance_of_deposit, 100_000_u256 * fast_power(10, 18));
 
-        println!("balance_of_user: {}", balance_of_user);
+        println!("balance_of_user vault: {}", balance_of_user);
         assert_eq!(balance_of_user, 100_000_u256 * fast_power(10, 18));
         cheat_caller_address(dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1));
 
@@ -197,7 +197,10 @@ pub mod pegged_tests {
         println!("balance_of_user_after: {}", balance_of_user_after);
         println!("balance_of_deposit_after: {}", balance_of_deposit_after);
 
-        let balance_collateral_of_deposit_after = collateral_token_dispatcher.balance_of(deposit_vault_dispatcher.contract_address);
+        let balance_collateral_of_deposit_after_fees = collateral_token_dispatcher.balance_of(deposit_vault_dispatcher.contract_address);
+        println!("balance_collateral_of_deposit_after_fees: {}", balance_collateral_of_deposit_after_fees);
+
+        let balance_collateral_of_deposit_after = collateral_token_dispatcher.balance_of(OWNER);
         println!("balance_collateral_of_deposit_after: {}", balance_collateral_of_deposit_after);
 
         assert_eq!(balance_of_user_after, 0);

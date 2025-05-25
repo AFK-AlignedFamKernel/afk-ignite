@@ -1,9 +1,13 @@
 #[starknet::contract]
 mod PeggedCoin {
+    use afk_ignite::interfaces::deposit_vault::{
+        IDepositVault, IDepositVaultDispatcher, IDepositVaultDispatcherTrait,
+    };
     use afk_ignite::interfaces::peggedcoin::{
         ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IPeggedCoin, MINTER_ROLE,
         MintDepositEvent, OPERATOR_ROLE, TokenCollateral, TokenCollateralEvent, WithdrawnEvent,
     };
+    use core::num::traits::Zero;
     use openzeppelin::access::accesscontrol::AccessControlComponent;
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::introspection::src5::SRC5Component;
@@ -18,8 +22,6 @@ mod PeggedCoin {
     };
     use starknet::{ContractAddress, get_caller_address, get_contract_address};
     use crate::errors;
-    use core::num::traits::Zero;
-    use afk_ignite::interfaces::deposit_vault::{IDepositVault, IDepositVaultDispatcher, IDepositVaultDispatcherTrait};
     // use super::{
     //     ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
     //     MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
@@ -299,25 +301,6 @@ mod PeggedCoin {
                 .entry(caller)
                 .entry(token_address)
                 .read();
-            let new_amount_deposited_per_user = amount_deposited_per_user + amount;
-            let new_amount_deposited_per_token = amount_deposited_per_token + amount;
-            self.mint_per_user.entry(caller).write(new_amount_deposited_per_user);
-            self.mint_per_token.entry(token_address).write(new_amount_deposited_per_token);
-            self
-                .deposit_token_per_user
-                .entry(caller)
-                .entry(token_address)
-                .write(amount_deposited_per_user_token + amount);
-
-            let deposit_amount_per_user_token = self
-                .deposit_token_per_user
-                .entry(caller)
-                .entry(token_address)
-                .read();
-            // println!("deposit_amount_per_user_token: {}", deposit_amount_per_user_token);
-            self
-                .total_minted_amount
-                .write(self.total_minted_amount.read() + deposit_amount_per_user_token);
 
             let erc20_quote = IERC20Dispatcher { contract_address: token_address };
 
@@ -330,6 +313,23 @@ mod PeggedCoin {
                 fee_amount = amount * fee_deposit_percentage / 10_000;
             }
 
+            let amount_minus_fees = amount - fee_amount;
+
+            let new_amount_deposited_per_user = amount_deposited_per_user + amount_minus_fees;
+            let new_amount_deposited_per_token = amount_deposited_per_token + amount_minus_fees;
+            self.mint_per_user.entry(caller).write(new_amount_deposited_per_user);
+            self.mint_per_token.entry(token_address).write(new_amount_deposited_per_token);
+            self
+                .deposit_token_per_user
+                .entry(caller)
+                .entry(token_address)
+                .write(amount_deposited_per_user_token + amount_minus_fees);
+
+            // println!("deposit_amount_per_user_token: {}", deposit_amount_per_user_token);
+            self
+                .total_minted_amount
+                .write(self.total_minted_amount.read() + amount_minus_fees);
+
             // let token_collateral = self.token_collateral.entry(token_address).read();
             // let is_fees_deposit_token = token_collateral.is_fees_deposit;
             // let fee_deposit_percentage_token = token_collateral.fee_deposit_percentage;
@@ -338,21 +338,25 @@ mod PeggedCoin {
             //     erc20_quote.transfer_from(caller, get_contract_address(), fee_amount);
             // }
 
+            println!("fee_amount deposit: {}", fee_amount);
+            println!("amount_minus_fees: {}", amount_minus_fees);
+
+            println!("is_deposit_vault_enabled: {}", self.is_deposit_vault_enabled.read());
+            // Deposit to vault if enabled
+            // Otherwise deposit to contract
             if self.is_deposit_vault_enabled.read() && !self.deposit_vault.read().is_zero() {
                 if fee_amount > 0 {
                     erc20_quote.transfer_from(caller, self.deposit_vault.read(), fee_amount);
                 }
-                erc20_quote.transfer_from(caller, self.deposit_vault.read(), amount - fee_amount);
+                erc20_quote.transfer_from(caller, self.deposit_vault.read(), amount_minus_fees);
             } else {
                 if fee_amount > 0 {
                     erc20_quote.transfer_from(caller, get_contract_address(), fee_amount);
                 }
-                erc20_quote.transfer_from(caller, get_contract_address(), amount - fee_amount);
+                erc20_quote.transfer_from(caller, get_contract_address(), amount_minus_fees);
             }
 
-
-            let amount_to_mint = amount - fee_amount;
-            self.erc20.mint(recipient, amount_to_mint);
+            self.erc20.mint(recipient, amount_minus_fees);
 
             self
                 .emit(
@@ -360,7 +364,7 @@ mod PeggedCoin {
                         is_fees_deposit: self.is_fees_deposit.read(),
                         fee_deposit_percentage: fee_deposit_percentage,
                         amount_send: amount,
-                        amount_received: amount,
+                        amount_received: amount_minus_fees,
                         token_address: token_address,
                         recipient: recipient,
                         caller: caller,
@@ -388,56 +392,61 @@ mod PeggedCoin {
                 .entry(token_address)
                 .read();
 
+            let erc20_quote = IERC20Dispatcher { contract_address: token_address };
+            let mut fee_amount = 0;
+            let fee_deposit_percentage = self.fee_deposit_percentage.read();
+            let fee_withdraw_percentage = self.fee_withdraw_percentage.read();
+
+            if self.is_fees_withdraw.read() {
+                fee_amount = amount * fee_withdraw_percentage / 10_000;
+            }
+
+            println!(
+                "self.is_deposit_vault_enabled.read(): {}", self.is_deposit_vault_enabled.read(),
+            );
+            println!("fee_amount: {}", fee_amount);
+            println!("amount: {}", amount);
+            println!("amount - fee_amount: {}", amount - fee_amount);
+
+            let amount_minus_fees = amount - fee_amount;
+
             // println!("amount_deposited_per_user_token: {}", amount_deposited_per_user_token);
             // println!("amount_token_deposit: {}", amount_token_deposit);
             // println!("amount_to_withdraw: {}", amount_to_withdraw);
             // println!("amount: {}", amount);
             assert(amount_deposited_per_user_token >= amount, errors::INSUFFICIENT_BALANCE);
-            let new_amount_to_withdraw = amount_to_withdraw - amount;
-            let new_amount_token_deposit = amount_token_deposit - amount;
+            let new_amount_to_withdraw = amount_to_withdraw - amount_minus_fees;
+            let new_amount_token_deposit = amount_token_deposit - amount_minus_fees;
 
             // assert(new_amount_to_withdraw >= 0, errors::INSUFFICIENT_BALANCE);
             // assert(new_amount_token_deposit >= 0, errors::INSUFFICIENT_BALANCE);
 
             self.mint_per_user.entry(caller).write(new_amount_to_withdraw);
             self.mint_per_token.entry(token_address).write(new_amount_token_deposit);
-            self.total_minted_amount.write(self.total_minted_amount.read() - amount);
+            self.total_minted_amount.write(self.total_minted_amount.read() - amount_minus_fees);
             self
                 .deposit_token_per_user
                 .entry(caller)
                 .entry(token_address)
-                .write(amount_deposited_per_user_token - amount);
+                .write(amount_deposited_per_user_token - amount_minus_fees);
 
-            let fee_deposit_percentage = self.fee_deposit_percentage.read();
-            let fee_withdraw_percentage = self.fee_withdraw_percentage.read();
-
-            let erc20_quote = IERC20Dispatcher { contract_address: token_address };
-            let mut fee_amount = 0;
-            if self.is_fees_withdraw.read() {
-                fee_amount = amount * fee_withdraw_percentage / 10_000;
-            }
-
-            println!("self.is_deposit_vault_enabled.read(): {}", self.is_deposit_vault_enabled.read());
+            println!("amount_minus_fees: {}", amount_minus_fees);
             println!("fee_amount: {}", fee_amount);
-            println!("amount: {}", amount);
-            println!("amount - fee_amount: {}", amount - fee_amount);
 
-            if self.is_deposit_vault_enabled.read() && !self.deposit_vault.read().is_zero() { 
+            if self.is_deposit_vault_enabled.read() && !self.deposit_vault.read().is_zero() {
                 let address_vault = self.deposit_vault.read();
-                let deposit_vault = IDepositVaultDispatcher {
-                    contract_address: address_vault,
-                };
-                if fee_amount > 0 {
-                    // deposit_vault.transfer_from_operator(token_address, fee_amount, get_contract_address());
+                let deposit_vault = IDepositVaultDispatcher { contract_address: address_vault };
+                if fee_amount > 0 { // deposit_vault.transfer_from_operator(token_address, fee_amount,
+                // get_contract_address());
                 }
-                deposit_vault.transfer_from_operator(token_address, amount - fee_amount, recipient);
+                deposit_vault.transfer_from_operator(token_address, amount_minus_fees, recipient);
             } else {
                 if fee_amount > 0 {
                     erc20_quote.transfer(get_contract_address(), fee_amount);
                 }
-                erc20_quote.transfer(recipient, amount - fee_amount);
+                erc20_quote.transfer(recipient, amount_minus_fees);
             }
-            self.erc20.burn(caller, amount);
+            self.erc20.burn(caller, amount_minus_fees);
 
             self
                 .emit(
