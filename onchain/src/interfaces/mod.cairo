@@ -1,2 +1,3 @@
 pub mod stablecoin;
-pub mod erc20;
+pub mod mint_stablecoin;
+// pub mod erc20;

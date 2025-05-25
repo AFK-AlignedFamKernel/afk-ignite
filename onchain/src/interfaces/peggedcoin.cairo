@@ -33,27 +33,52 @@ pub trait IAdminVault<TContractState> {
     fn set_token_accepted(
         ref self: TContractState, token_address: ContractAddress, is_accepted: bool,
     ) -> bool;
+    fn set_deposit_vault(
+        ref self: TContractState,
+        deposit_vault: ContractAddress,
+        is_deposit_vault_enabled: bool,
+    ) -> bool;
 }
 
 
 #[starknet::interface]
-pub trait IStablecoin<TContractState> {
-
+pub trait IPeggedCoin<TContractState> {
     fn deposit(
         ref self: TContractState,
         recipient: ContractAddress,
         amount: u256,
         token_address: ContractAddress,
-    ) -> bool;    
+    ) -> bool;
 
 
-    fn withdraw(ref self: TContractState,
+    fn withdraw(
+        ref self: TContractState,
         recipient: ContractAddress,
         amount: u256,
         token_address: ContractAddress,
-    ) -> bool;    
-
+    ) -> bool;
 }
+
+#[derive(Drop, starknet::Store, Serde, Copy)]
+pub struct TokenCollateral {
+    pub token_address: ContractAddress,
+    pub is_accepted: bool,
+    pub is_fees_deposit: bool,
+    pub is_fees_withdraw: bool,
+    pub fee_deposit_percentage: u256,
+    pub fee_withdraw_percentage: u256,
+}
+
+#[derive(Drop, starknet::Event, Serde, Copy)]
+pub struct TokenCollateralEvent {
+    pub is_fees_deposit: bool,
+    pub fee_deposit_percentage: u256,
+    pub amount_send: u256,
+    pub amount_received: u256,
+    pub token_address: ContractAddress,
+    pub caller: ContractAddress,
+}
+
 
 #[derive(Drop, starknet::Event, Serde, Copy)]
 pub struct MintDepositEvent {

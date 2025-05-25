@@ -11,8 +11,40 @@ openzeppelin = "1.0.0"
 ekubo = { git = "https://github.com/EkuboProtocol/abis", rev = "edb6de8c9baf515f1053bbab3d86825d54a63bc3"}
 alexandria_storage = { git = "https://github.com/keep-starknet-strange/alexandria.git" }
 alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria.git" }
+pragma_lib = { git = "https://github.com/astraly-labs/pragma-lib" }
 
 [dev-dependencies]
 snforge_std = "0.40.0"
 assert_macros = "2.11.4"
 cairo_test = "2.11.4"
+
+[workspace.package]
+version = "0.1.0"
+
+[scripts]
+test = "snforge test"
+
+[tool.fmt]
+sort-module-level-items = true
+
+[[target.starknet-contract]]
+casm = true
+sierra = true
+allowed-libfuncs-list.name = "experimental"
+
+[[tool.snforge.fork]]
+name = "Mainnet"
+url = "https://starknet-mainnet.public.blastapi.io/rpc/v0_8"
+block_id.number = "672259"
+
+[[tool.snforge.fork]]
+name = "Sepolia"
+url = "https://starknet-sepolia.public.blastapi.io/rpc/v0_8"
+block_id.number = "615925"
+
+[tool.scarb]
+allow-prebuilt-plugins = ["snforge_std"]
+
+# [profile.dev.cairo]
+# unstable-add-statements-code-locations-debug-info = true
+# unstable-add-statements-functions-debug-info = true
