@@ -6,6 +6,7 @@ mod MintStablecoin {
     use afk_ignite::interfaces::mint_stablecoin::{
         ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IMintStablecoin, MINTER_ROLE,
         MintDepositEvent, OPERATOR_ROLE, TokenCollateral, WithdrawnEvent,
+        IAdminStablecoinVault
     };
     use afk_ignite::oracle_helpers::{
         compute_twap, compute_volatility, get_asset_conversion_rate, get_asset_price_average,
@@ -94,6 +95,18 @@ mod MintStablecoin {
         mint_per_user: Map<ContractAddress, u256>,
         mint_per_token: Map<ContractAddress, u256>,
         deposit_token_per_user: Map<ContractAddress, Map<ContractAddress, u256>>,
+        
+
+        // Params of vault
+        deposit_vault:ContractAddress,
+        is_deposit_vault_enabled:bool,
+        is_collaterization_enabled:bool,
+        collaterization_ratio:u256,
+        collateral_debt_ratio:u256,
+        is_under_collateral:bool,
+        debt:u256,
+        total_mint_cap:u256,
+        
         #[substorage(v0)]
         erc20: ERC20Component::Storage,
         #[substorage(v0)]
@@ -166,6 +179,8 @@ mod MintStablecoin {
                     is_fees_withdraw: true,
                     fee_deposit_percentage: 0,
                     fee_withdraw_percentage: 0,
+                    token_id: token_id, 
+
                 },
             );
     }
@@ -220,6 +235,7 @@ mod MintStablecoin {
             is_fees_withdraw: bool,
             fee_deposit_percentage: u256,
             fee_withdraw_percentage: u256,
+            token_id: felt252,
         ) -> bool {
             self
                 .token_collateral
@@ -232,6 +248,7 @@ mod MintStablecoin {
                         is_fees_withdraw: is_fees_withdraw,
                         fee_deposit_percentage: fee_deposit_percentage,
                         fee_withdraw_percentage: fee_withdraw_percentage,
+                        token_id: token_id,
                     },
                 );
             true
@@ -266,8 +283,45 @@ mod MintStablecoin {
                 );
             true
         }
+
+        fn set_token_id(
+            ref self: ContractState,
+            token_address: ContractAddress,
+            token_id: felt252,
+            is_accepted: bool,
+        ) -> bool {
+            self.token_id_accepted.entry(token_id).write(is_accepted);
+            self.token_id_address.entry(token_address).write(token_id);
+            self.token_address_per_id.entry(token_id).write(token_address);
+            true
+        }
+
+        fn set_deposit_vault(
+            ref self: ContractState, deposit_vault: ContractAddress, is_deposit_vault_enabled: bool,
+        ) -> bool {
+            self.deposit_vault.write(deposit_vault);
+            self.is_deposit_vault_enabled.write(is_deposit_vault_enabled);
+            true
+        }
+
     }
 
+    #[abi(embed_v0)]
+    impl IAdminStablecoinVaultImpl of IAdminStablecoinVault<ContractState> {
+        fn set_params_collaterization(
+            ref self: ContractState,
+            total_mint_cap:u256,
+            is_under_collateral:bool,
+            collateral_debt_ratio:u256
+        ) -> bool {
+
+            self.total_mint_cap.write(total_mint_cap);
+            self.is_under_collateral.write(is_under_collateral);
+            self.collateral_debt_ratio.write(collateral_debt_ratio);
+
+            true
+        }
+    }
     #[generate_trait]
     impl InternalImpl of InternalTrait {
         fn _set_decimals(ref self: ContractState, decimals: u8) {
@@ -296,6 +350,14 @@ mod MintStablecoin {
 
             let token_address_per_id = self.token_address_per_id.entry(self.token_id.read()).read();
 
+
+            let mut fee_amount = 0;
+            let fee_deposit_percentage = self.fee_deposit_percentage.read();
+            if self.is_fees_deposit.read() {
+                fee_amount = amount * fee_deposit_percentage / 10_000;
+            }
+            let amount_minus_fees = amount - fee_amount;
+
             let amount_deposited_per_user = self.mint_per_user.entry(caller).read();
             let amount_deposited_per_token = self.mint_per_token.entry(token_address).read();
             let amount_deposited_per_user_token = self
@@ -303,15 +365,15 @@ mod MintStablecoin {
                 .entry(caller)
                 .entry(token_address)
                 .read();
-            let new_amount_deposited_per_user = amount_deposited_per_user + amount;
-            let new_amount_deposited_per_token = amount_deposited_per_token + amount;
+            let new_amount_deposited_per_user = amount_deposited_per_user + amount_minus_fees;
+            let new_amount_deposited_per_token = amount_deposited_per_token + amount_minus_fees;
             self.mint_per_user.entry(caller).write(new_amount_deposited_per_user);
             self.mint_per_token.entry(token_address).write(new_amount_deposited_per_token);
             self
                 .deposit_token_per_user
                 .entry(caller)
                 .entry(token_address)
-                .write(amount_deposited_per_user_token + amount);
+                .write(amount_deposited_per_user_token + amount_minus_fees);
 
             let deposit_amount_per_user_token = self
                 .deposit_token_per_user
@@ -324,17 +386,21 @@ mod MintStablecoin {
                 .write(self.total_minted_amount.read() + deposit_amount_per_user_token);
 
             let erc20_quote = IERC20Dispatcher { contract_address: token_address };
-            erc20_quote.transfer_from(caller, get_contract_address(), amount);
+           
+            if self.is_deposit_vault_enabled.read() && !self.deposit_vault.read().is_zero() {
+                if fee_amount > 0 {
+                    erc20_quote.transfer_from(caller, self.deposit_vault.read(), fee_amount);
+                }
+                erc20_quote.transfer_from(caller, self.deposit_vault.read(), amount_minus_fees);
+            } else {
+                if fee_amount > 0 {
+                    erc20_quote.transfer_from(caller, get_contract_address(), fee_amount);
+                }
+                erc20_quote.transfer_from(caller, get_contract_address(), amount_minus_fees);
+            }
 
             // deducted fees if 1=1
             // TODO fees per token
-
-            let mut fee_amount = 0;
-            let fee_deposit_percentage = self.fee_deposit_percentage.read();
-            if self.is_fees_deposit.read() {
-                fee_amount = amount * fee_deposit_percentage / 10_000;
-                erc20_quote.transfer_from(caller, get_contract_address(), fee_amount);
-            }
 
             let amount_to_mint = 0;
 
@@ -361,18 +427,10 @@ mod MintStablecoin {
 
             let price_u256: u256 = price_with_precision.try_into().unwrap();
             println!("price_u256: {}", price_u256);
-            // let price_token = get_asset_price_average(self.pragma_contract.read(), DataType::USD,
-            // token_id_address);
-            // let token_collateral = self.token_collateral.entry(token_address).read();
-            // let is_fees_deposit_token = token_collateral.is_fees_deposit;
-            // let fee_deposit_percentage_token = token_collateral.fee_deposit_percentage;
-            // if is_fees_deposit_token {
-            //     fee_amount = amount * fee_deposit_percentage / 10_000;
-            //     erc20_quote.transfer_from(caller, get_contract_address(), fee_amount);
-            // }
 
+          
             // let amount_to_mint = amount - fee_amount;
-            let amount_to_mint = amount * price_u256;
+            let amount_to_mint = amount_minus_fees * price_u256;
             // let amount_to_mint_precision = amount * price_with_precision;
             println!("amount_to_mint: {}", amount_to_mint);
             // println!("amount_to_mint_precision: {}", amount_to_mint_precision);
@@ -460,4 +518,6 @@ mod MintStablecoin {
                 );
         }
     }
+
+    
 }

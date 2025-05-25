@@ -22,6 +22,7 @@ pub trait IAdminVault<TContractState> {
         is_fees_withdraw: bool,
         fee_deposit_percentage: u256,
         fee_withdraw_percentage: u256,
+        token_id: felt252,
     ) -> bool;
     fn set_fees(
         ref self: TContractState,
@@ -33,8 +34,32 @@ pub trait IAdminVault<TContractState> {
     fn set_token_accepted(
         ref self: TContractState, token_address: ContractAddress, is_accepted: bool,
     ) -> bool;
+
+    fn set_token_id(
+        ref self: TContractState,
+        token_address: ContractAddress,
+        token_id: felt252,
+        is_accepted: bool,
+    ) -> bool;
+
+
+    fn set_deposit_vault(
+        ref self: TContractState, deposit_vault: ContractAddress, is_deposit_vault_enabled: bool,
+    ) -> bool;
 }
 
+
+#[starknet::interface]
+pub trait IAdminStablecoinVault<TContractState> {
+
+    fn set_params_collaterization(
+        ref self: TContractState,
+        total_mint_cap:u256,
+        is_under_collateral:bool,
+        collateral_debt_ratio:u256,
+    ) -> bool;
+
+}
 
 #[starknet::interface]
 pub trait IMintStablecoin<TContractState> {
@@ -62,6 +87,7 @@ pub struct TokenCollateral {
     pub is_fees_withdraw: bool,
     pub fee_deposit_percentage: u256,
     pub fee_withdraw_percentage: u256,
+    pub token_id: felt252,
 }
 
 #[derive(Drop, starknet::Event, Serde, Copy)]
