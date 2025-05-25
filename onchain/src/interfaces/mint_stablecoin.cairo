@@ -59,6 +59,14 @@ pub trait IAdminStablecoinVault<TContractState> {
         collateral_debt_ratio:u256,
     ) -> bool;
 
+
+    fn set_params_withdraw(
+        ref self: TContractState,
+        is_withdraw_current_price:bool,
+        is_option_mode:bool,
+        option_expiry_epoch:u64,
+    ) -> bool;
+
 }
 
 #[starknet::interface]
