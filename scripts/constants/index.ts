@@ -7,10 +7,15 @@ export const AUSD_ADDRESSES = {
   // [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
   //   '0x17b3ce9c2c328ff50bd09cf349a8455ffc5d8c0e776964795b2024cf55761dd',
   // ),
+  // [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+  //   '0x2c5f5088afc743cee817c3b080faac6af40b83cb21a4db30f794fc3d55928f3',
+  // ),
   [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
-    '0x2c5f5088afc743cee817c3b080faac6af40b83cb21a4db30f794fc3d55928f3',
+    '0x1d0a23723fa124e2aebc152498ca30b6ac7fa1f1224707172b868a44293a659',
   ),
-  
+
+
+
 };
 
 export const ACCOUNT_TEST_PROFILE = {

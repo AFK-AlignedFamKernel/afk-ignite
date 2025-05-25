@@ -42,6 +42,9 @@ export const usePeggedCoin = ({ contractAddress }: { contractAddress: string }) 
             console.log("balance", balance);
             console.log("allowance", allowance);
 
+            const allowanceRevert = await erc20Contract.allowance(contractAddress, recipient);
+            console.log("allowanceRevert", allowanceRevert);
+
             const depositData = [
                 recipient ?? account?.address,
                 amountUint256,

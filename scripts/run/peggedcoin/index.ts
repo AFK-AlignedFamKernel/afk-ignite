@@ -44,6 +44,10 @@ export const deposit = async (props: {
         console.log("balance", balance);
         console.log("allowance", allowance);
 
+        const allowanceRevert = await erc20Contract.allowance(contractAddress, recipient);
+        console.log("allowanceRevert", allowanceRevert);
+
+        
         const depositData = [
             recipient ?? account?.address,
             amountUint256,
