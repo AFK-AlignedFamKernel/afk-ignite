@@ -140,8 +140,13 @@ const MobileBottomBar = () => {
     <div
 
       className="fixed bottom-0 left-0 right-0 z-50 md:hidden z-500"
-      
-      style={{ backgroundColor: bottomBarBg }}
+      style={{
+        backgroundColor: bottomBarBg,
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        borderTop: `1px solid ${bottomBarBorder}`
+      }}
+    // style={{ backgroundColor: bottomBarBg }}
     >
 
       <div>
@@ -194,7 +199,7 @@ const MobileBottomBar = () => {
               <p className="text-xs font-medium leading-normal tracking-[0.015em]">Yield</p>
             </button>
           </Link>
-          <Link href="/history">
+          {/* <Link href="/history">
 
             <button className="flex flex-1 flex-col items-center justify-end gap-1" style={{ color: secondaryTextColor }}>
               <div className="flex h-8 items-center justify-center">
@@ -205,7 +210,7 @@ const MobileBottomBar = () => {
               <p className="text-xs font-medium leading-normal tracking-[0.015em]">History</p>
 
             </button>
-          </Link>
+          </Link> */}
           <Link href="/wallet">
             <button className="flex flex-1 flex-col items-center justify-end gap-1" style={{ color: secondaryTextColor }}>
               <div className="flex h-8 items-center justify-center">

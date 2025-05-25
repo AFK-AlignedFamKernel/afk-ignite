@@ -71,13 +71,17 @@ export const createPeggedCoin = async (
     }])
     if (process.env.REDECLARE_CONTRACT == "true") {
       console.log("try declare account");
-      const declareResponse = await account0.declare({
+      const declareResponse = await account0.declareIfNot({
         contract: compiledSierraAAaccount,
         casm: compiledAACasm,
       });
       console.log("Declare deploy", declareResponse?.transaction_hash);
-      await provider.waitForTransaction(declareResponse?.transaction_hash);
+
+      if(declareResponse?.transaction_hash) {
+        await provider.waitForTransaction(declareResponse?.transaction_hash);
+      }
       const contractClassHash = declareResponse.class_hash;
+      console.log("contractClassHash", contractClassHash);
       EscrowClassHash = contractClassHash;
 
       const nonce = await account0?.getNonce();

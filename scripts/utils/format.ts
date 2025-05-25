@@ -1,4 +1,4 @@
-import { Uint256, uint256 } from "starknet";
+import { cairo, Uint256, uint256 } from "starknet";
 
 export function pubkeyToUint256(pubkey: string): Uint8Array {
   // Ensure the public key is 64 hexadecimal characters (32 bytes)
@@ -75,30 +75,22 @@ export function stringToUint8Array(str: string): Uint8Array {
   return uint8Array;
 }
 
-// /**
-//  * Converts a string to a Uint256 format suitable for Cairo contracts.
-//  * If the string is shorter than 64 hex characters, it will be padded with leading zeros.
-//  *
-//  * @param {string} str - The input string.
-//  * @returns {{ low: string, high: string }} - The Uint256 representation.
-//  */
-// export function stringToUint256(str: string): Uint256{
-//   // Convert the string to a hexadecimal representation
-//   let hexString = Buffer.from(str, 'utf8').toString('hex');
 
-//   // Ensure the hex string is 64 characters long (32 bytes)
-//   hexString = hexString.padStart(64, '0');
+export const formatFloatToUint256 = (total_amount_float: number, decimals = 18) => {
+  try {
+      let total_amount: Uint256 | undefined;
+      const total_amount_nb = total_amount_float * 10 ** Number(decimals);
+      console.log("total_amount_nb", total_amount_nb);
+      if (Number.isInteger(total_amount_float)) {
+          total_amount = cairo.uint256(total_amount_nb);
+      } else {
+          total_amount = uint256.bnToUint256(BigInt(total_amount_nb));
+      }
 
-//   // Split the string into two 128-bit parts (16 bytes each)
-//   const highHex = hexString.slice(0, 32);
-//   const lowHex = hexString.slice(32);
+      return total_amount;
+  } catch (error) {
+      console.error("Error formatting float to uint256", error);
+      return undefined;
+  }
 
-//   // Convert the hex parts to BigInt
-//   const high = BigInt('0x' + highHex);
-//   const low = BigInt('0x' + lowHex);
-
-//   // Create the Uint256 object
-//   const uint256Value = uint256.bnToUint256(low + (high << BigInt(128)));
-
-//   return uint256Value;
-// }
+};        

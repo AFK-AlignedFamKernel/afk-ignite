@@ -5,15 +5,26 @@ export const AUSD_ADDRESSES = {
   [constants.StarknetChainId.SN_MAIN]: '', // TODO: Add mainnet escrow address
 
   // aUSD Contract with internal deposit/withdrawal
+  // [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+  //   '0x17b3ce9c2c328ff50bd09cf349a8455ffc5d8c0e776964795b2024cf55761dd',
+  // ),
   [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
-    '0x17b3ce9c2c328ff50bd09cf349a8455ffc5d8c0e776964795b2024cf55761dd',
+    '0x2c5f5088afc743cee817c3b080faac6af40b83cb21a4db30f794fc3d55928f3',
   ),
+  
 };
 
+// export const USD_ADDRESSES = {
+//   [constants.StarknetChainId.SN_MAIN]: '0x02f37c3e00e75ee4135b32bb60c37e0599af264076376a618f138d2f9929ac74', // TODO: Add mainnet escrow address
+//   [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+//     '0x02f37c3e00e75ee4135b32bb60c37e0599af264076376a618f138d2f9929ac74',
+//   ),
+// }
+
 export const USD_ADDRESSES = {
-  [constants.StarknetChainId.SN_MAIN]: '0x02f37c3e00e75ee4135b32bb60c37e0599af264076376a618f138d2f9929ac74', // TODO: Add mainnet escrow address
+  [constants.StarknetChainId.SN_MAIN]: '0x053b40A647CEDfca6cA84f542A0fe36736031905A9639a7f19A3C1e66bFd5080', // TODO: Add mainnet escrow address
   [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
-    '0x02f37c3e00e75ee4135b32bb60c37e0599af264076376a618f138d2f9929ac74',
+    '0x053b40A647CEDfca6cA84f542A0fe36736031905A9639a7f19A3C1e66bFd5080',
   ),
 }
 

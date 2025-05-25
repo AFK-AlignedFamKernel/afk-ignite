@@ -1,6 +1,6 @@
 import { provider } from "../utils/starknet";
 import { Account, constants } from "starknet";
-import { ESCROW_ADDRESS, TOKENS_ADDRESS } from "../constants";
+import { ESCROW_ADDRESS, TOKENS_ADDRESS, USDC_ADDRESSES } from "../constants";
 import dotenv from "dotenv";
 import { createPeggedCoin } from "../utils/peggedcoin";
 import { prepareAndConnectContract } from "../utils/contract";
@@ -55,14 +55,15 @@ export const deployPeggedCoin = async (tokenAddress: string,
 };
 
 const deployAsync = async () => {
-  await deployPeggedCoin(TOKENS_ADDRESS.SEPOLIA.USDC,
+  await deployPeggedCoin(
+    USDC_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA],
     "aUSD",
     "aligned USDC",
     6);
-  await deployPeggedCoin(TOKENS_ADDRESS.SEPOLIA.ETH,
-    "aETH",
-    "aligned ETH",
-    18);
+  // await deployPeggedCoin(TOKENS_ADDRESS.SEPOLIA.ETH,
+  //   "aETH",
+  //   "aligned ETH",
+  //   18);
 }
 
 deployAsync();

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccount } from '@starknet-react/core';
 import { constants } from 'starknet';
 import { Icon } from '../small/icon-component';
-import { ETH_ADDRESSES, STRK_ADDRESSES } from '../../constants/contracts';
+import { AUSD_ADDRESSES, ETH_ADDRESSES, STRK_ADDRESSES } from '../../constants/contracts';
 import { useUIStore } from '@/store/uiStore';
 import { WalletConnectButton } from '../account/WalletConnectButton';
+import { usePeggedCoin } from '@/hooks/peggedcoin';
+import { useFetchBalance } from '@/hooks/peggedcoin/balance';
 
 interface VaultMintProps {
     availableTokens: {
@@ -19,6 +21,7 @@ interface VaultMintProps {
 }
 
 export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
+    contractAddress,
     //  onMint, onWithdraw 
 
 }) => {
@@ -28,20 +31,61 @@ export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
     const [amount, setAmount] = useState(0);
     const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
 
+    const { handleDeposit } = usePeggedCoin({ contractAddress: contractAddress ?? AUSD_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA] });
 
+    const [balanceToken, setBalanceToken] = useState(0);
+    const [balanceCollateral, setBalanceCollateral] = useState(0);
     const [amountReceived, setAmountReceived] = useState(0);
 
+    const { handleFetchBalance } = useFetchBalance({ contractAddress: contractAddress ?? AUSD_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA] });
+    const { handleFetchBalance: handleBalanceCollateral } = useFetchBalance({ contractAddress: selectedToken.address ?? AUSD_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA] });
     const onMint = async (tokenAddress: string, amount: string) => {
-        showToast({ message: 'Withdrawing', type: 'success' });
-        console.log('Minting', tokenAddress, amount);
+
+
+        try {
+            const tx = await handleDeposit(account?.address, amount.toString(), tokenAddress);
+
+            if (!tx) {
+                showToast({ message: 'Deposit failed', type: 'error' });
+                return;
+            }
+            showToast({ message: 'Deposit in progress', type: 'success' });
+            // const receipt = await account?.waitForTransactionReceipt({transactionHash: tx.transaction_hash});
+            // if(receipt?.status === 'REJECTED') {
+            //     showToast({ message: 'Deposit failed', type: 'error' });
+            //     return;
+            // }
+            showToast({ message: 'Deposit successful', type: 'success' });
+            console.log('Minting', tokenAddress, amount);
+        } catch (error) {
+
+            console.error(error);
+        }
     }
+
+
+    useEffect(() => {
+        const fetchBalance = async () => {
+            if (account?.address) {
+                const balanceToken = await handleFetchBalance(account?.address, "0", contractAddress ?? AUSD_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA]);
+                setBalanceToken(balanceToken);
+            }
+
+            if (selectedToken.address) {
+                const balanceCollateral = await handleBalanceCollateral(account?.address, "0", selectedToken.address);
+                setBalanceCollateral(Number(balanceCollateral) / 10 ** selectedToken.decimals);
+            }
+        }
+
+        fetchBalance();
+    }, [account?.address, selectedToken.address]);
 
     const onWithdraw = async (tokenAddress: string, amount: string) => {
         showToast({ message: 'Withdrawing', type: 'success' });
         console.log('Withdrawing', tokenAddress, amount);
     }
     const handleAction = async () => {
-        if (!amount || !selectedToken) return;
+        if (!amount || !selectedToken || !account?.address) return;
         try {
             if (activeTab === 'deposit') {
                 await onMint(selectedToken.address, amount.toString());
@@ -66,13 +110,6 @@ export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
     return (
         <div className="flex flex-col gap-4 p-6 rounded-lg">
 
-            {!account?.address &&
-
-                <div className="flex flex-col items-center gap-4 p-6  rounded-lg">
-                    <h2 className="text-xl font-bold">Connect Wallet to Continue</h2>
-                    <WalletConnectButton />
-
-                </div>}
             <div className="flex gap-4 mb-4">
                 <button
                     onClick={() => setActiveTab('deposit')}
@@ -118,6 +155,7 @@ export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
 
             {activeTab === 'withdraw' && (
                 <div>
+                    <p>Balance: {balanceToken}</p>
                 </div>
 
             )}
@@ -125,6 +163,9 @@ export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
             <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                     <label className="text-sm text-gray-400">Amount</label>
+
+                    <p>Available: {activeTab === 'deposit' ? balanceCollateral : balanceToken}</p>
+
                     <button
                         onClick={() => setAmount(Number(selectedToken.maxAmount))}
                         className="text-sm text-blue-400 hover:text-blue-300"
@@ -145,9 +186,19 @@ export const VaultMint: React.FC<VaultMintProps> = ({ availableTokens,
                 <p className="text-sm text-gray-400"> Amount received in coin: {amountReceived.toFixed(2)}</p>
             </div>
 
+            <p>Available: {activeTab === 'deposit' ? balanceCollateral : balanceToken}</p>
+
+
+            {!account?.address &&
+
+                <div className="flex flex-col items-center gap-4 rounded-lg">
+                    <WalletConnectButton />
+
+                </div>}
+
             <button
                 onClick={handleAction}
-                disabled={!amount || !selectedToken}
+                disabled={!amount || !selectedToken || !account?.address}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
             >
                 {activeTab === 'deposit' ? 'Deposit' : 'Withdraw'}
