@@ -7,12 +7,11 @@ import TokenEncryptedElgamal from '../PrivateToken/elgamal';
 const WalletComponents = () => {
 
 
-  const [activeTab, setActiveTab] = useState<'cashu' | 'bitcoin' | 'starknet' | 'private'>('cashu');
+  const [activeTab, setActiveTab] = useState< "pay_receive" | 'cashu' | 'bitcoin' | 'starknet' | 'private'>('cashu');
 
-  const handleTabChange = (tab: 'cashu' | 'bitcoin' | 'starknet' | 'private') => {
+  const handleTabChange = (tab: 'pay_receive' | 'cashu' | 'bitcoin' | 'starknet' | 'private') => {
     setActiveTab(tab);
   }
-
 
   return (
 
@@ -22,9 +21,10 @@ const WalletComponents = () => {
       <p className="text-md text-gray-400 font-bold">Wallet coming soon</p>
 
       <div className="flex flex-row gap-4">
+        <button onClick={() => handleTabChange('pay_receive')} className={`${activeTab === 'pay_receive' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-md`}>Pay & Receive</button>
         <button onClick={() => handleTabChange('cashu')} className={`${activeTab === 'cashu' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-md`}>Cashu</button>
         <button onClick={() => handleTabChange('bitcoin')} className={`${activeTab === 'bitcoin' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-md`}>Bitcoin</button>
-        <button onClick={() => handleTabChange('starknet')} className={`${activeTab === 'starknet' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-md`}>Starknet</button>
+        {/* <button onClick={() => handleTabChange('starknet')} className={`${activeTab === 'starknet' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-md`}>Starknet</button> */}
         <button onClick={() => handleTabChange('private')} className={`${activeTab === 'private' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-md`}>Private</button>
       </div>
       <ul>
