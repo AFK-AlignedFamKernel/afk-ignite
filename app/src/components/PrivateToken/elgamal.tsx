@@ -1,23 +1,19 @@
+import { useAccount } from '@starknet-react/core';
 import { useState } from 'react';
-import { ethers } from 'ethers';
-import { Contract } from 'starknet';
+import { WalletConnectButton } from '../account/WalletConnectButton';
 
 // Replace with your deployed contract ABI + address
 const CONTRACT_ADDRESS = '0xYourContractAddress';
 
 export default function TokenEncryptedElgamal() {
-  const [account, setAccount] = useState<string>('');
   const [balance, setBalance] = useState<string>('?');
   const [amount, setAmount] = useState<string>('');
   const [to, setTo] = useState<string>('');
   const [status, setStatus] = useState<string>('');
 
+  const {account} = useAccount();
 
 
-  async function connectWallet() {
-    const [acc] = await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
-    setAccount(acc);
-  }
 
   async function getEncryptedBalance() {
     // if (!contract || !account) return;
@@ -45,13 +41,13 @@ export default function TokenEncryptedElgamal() {
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h2 className="text-2xl font-bold mb-4">Private Token Transfer</h2>
-      <button
-        onClick={connectWallet}
-        className="mb-4 px-4 py-2 bg-blue-600 text-white rounded shadow"
-      >
-        Connect Wallet
-      </button>
-      <p className="mb-2">Connected Account: {account}</p>
+     
+
+      <p className="mb-2">Connected Account: {account?.address}</p>
+
+      {!account && (
+        <WalletConnectButton/>
+      )}
 
       <button
         onClick={getEncryptedBalance}
