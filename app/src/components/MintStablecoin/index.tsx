@@ -21,6 +21,7 @@ interface MintStablecoinProps {
     selectedToken: TokenSelection;
   }) => void;
   onTokenSelect?: (token: TokenSelection) => void;
+  isCollateralRatioEditable?: boolean;
 }
 
 const DEFAULT_TOKENS: TokenSelection[] = [
@@ -49,7 +50,8 @@ const MintStablecoin = ({
   minCollateralRatio = 110,
   maxCollateralRatio = 200,
   onMint,
-  onTokenSelect
+  onTokenSelect,
+  isCollateralRatioEditable = false,
 }: MintStablecoinProps) => {
 //   const router = useRouter();
   const [collateralAmount, setCollateralAmount] = useState('');
@@ -241,35 +243,39 @@ const MintStablecoin = ({
             </label>
           </div>
 
-          <div className="@container">
-            <div className="relative flex w-full flex-col items-start justify-between gap-3 p-4 @[480px]:flex-row @[480px]:items-center">
-              <div className="flex w-full shrink-[3] items-center justify-between">
-                <p className="text-base font-medium leading-normal">Collateralization ratio</p>
-                <p className="text-sm font-normal leading-normal @[480px]:hidden">{collateralRatio}%</p>
-              </div>
-              <div className="flex h-4 w-full items-center gap-4">
-                <input
-                  type="range"
-                  min={minCollateralRatio}
-                  max={maxCollateralRatio}
-                  value={collateralRatio}
-                  onChange={(e) => handleCollateralRatioChange(Number(e.target.value))}
-                  className="w-full"
-                />
-                <div className="flex h-1 flex-1 rounded-sm bg-[#3b4754]">
-                  <div 
-                    className="h-full rounded-sm bg-white" 
-                    style={{ 
-                      width: `${((collateralRatio - minCollateralRatio) / (maxCollateralRatio - minCollateralRatio)) * 100}%` 
-                    }}
-                  ></div>
-                  <div className="relative">
-                    <div className="absolute -left-2 -top-1.5 size-4 rounded-full bg-white"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {isCollateralRatioEditable && (
+               <div className="@container">
+               <div className="relative flex w-full flex-col items-start justify-between gap-3 p-4 @[480px]:flex-row @[480px]:items-center">
+                 <div className="flex w-full shrink-[3] items-center justify-between">
+                   <p className="text-base font-medium leading-normal">Collateralization ratio</p>
+                   <p className="text-sm font-normal leading-normal @[480px]:hidden">{collateralRatio}%</p>
+                 </div>
+                 <div className="flex h-4 w-full items-center gap-4">
+                   <input
+                     type="range"
+                     min={minCollateralRatio}
+                     max={maxCollateralRatio}
+                     value={collateralRatio}
+                     onChange={(e) => handleCollateralRatioChange(Number(e.target.value))}
+                     className="w-full"
+                   />
+                   <div className="flex h-1 flex-1 rounded-sm bg-[#3b4754]">
+                     <div 
+                       className="h-full rounded-sm bg-white" 
+                       style={{ 
+                         width: `${((collateralRatio - minCollateralRatio) / (maxCollateralRatio - minCollateralRatio)) * 100}%` 
+                       }}
+                     ></div>
+                     <div className="relative">
+                       <div className="absolute -left-2 -top-1.5 size-4 rounded-full bg-white"></div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </div>
+          )}
+
+       
 
           <div className="px-4 py-3">
             <button

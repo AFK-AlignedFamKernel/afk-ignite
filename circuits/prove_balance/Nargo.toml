@@ -1,0 +1,6 @@
+[package]
+name = "prove_balance"
+type = "bin"
+authors = [""]
+
+[dependencies]
