@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Box, useColorModeValue, Button, VStack, HStack, Text, Select } from '@chakra-ui/react';
+import BridgeAtomiq from './BridgeAtomiq';
 
 interface BridgeProps {
   title?: string;
@@ -19,6 +20,8 @@ const Bridge = ({
   const [fromChain, setFromChain] = useState('bitcoin');
   const [toChain, setToChain] = useState('starknet');
   const [isConnected, setIsConnected] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<'garden' | 'atomiq' | 'internal' | 'layerswap' | 'onramp'>('atomiq');
 
   const bgColor = useColorModeValue('gray.300', 'gray.700');
   const textColor = useColorModeValue('gray.800', 'gray.300');
@@ -50,68 +53,42 @@ const Bridge = ({
             <h2 className="text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">{title}</h2>
           </div>
 
-          <VStack spacing={6} p={4}>
-            {!isConnected ? (
-              <Button
-                onClick={handleConnectWallet}
-                colorScheme="blue"
-                size="lg"
-                width="full"
-              >
-                Connect Bitcoin Wallet
-              </Button>
-            ) : (
-              <>
-                <HStack width="full" spacing={4}>
-                  <Select
-                    value={fromChain}
-                    onChange={(e) => setFromChain(e.target.value)}
-                    bg={inputBgColor}
-                    color={inputTextColor}
-                    borderColor={inputBorderColor}
-                  >
-                    <option value="bitcoin">Bitcoin</option>
-                    <option value="starknet">Starknet</option>
-                  </Select>
-                  <Text>→</Text>
-                  <Select
-                    value={toChain}
-                    onChange={(e) => setToChain(e.target.value)}
-                    bg={inputBgColor}
-                    color={inputTextColor}
-                    borderColor={inputBorderColor}
-                  >
-                    <option value="starknet">Starknet</option>
-                    <option value="bitcoin">Bitcoin</option>
-                  </Select>
-                </HStack>
+          <div>
 
-                <Box width="full">
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    style={{
-                      backgroundColor: inputBgColor,
-                      color: inputTextColor,
-                      borderColor: inputBorderColor,
-                    }}
-                    className="form-input w-full rounded-lg focus:outline-0 focus:ring-0 border h-14 p-4 text-base font-normal leading-normal transition-colors duration-200"
-                    placeholder="Enter amount"
-                  />
-                </Box>
+            <div className='flex flex-row gap-2'>
+              <button className={`${activeTab === 'atomiq' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'} px-4 py-2 rounded-md`} onClick={() => setActiveTab('atomiq')}>Atomiq</button>
+              <button className={`${activeTab === 'garden' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'} px-4 py-2 rounded-md`} onClick={() => setActiveTab('garden')}>Garden</button>
+              <button className={`${activeTab === 'internal' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'} px-4 py-2 rounded-md`} onClick={() => setActiveTab('internal')}>Internal</button>
+            </div>
 
-                <Button
-                  onClick={handleBridge}
-                  colorScheme="blue"
-                  size="lg"
-                  width="full"
-                >
-                  Bridge {fromChain === 'bitcoin' ? 'BTC' : 'ETH'} to {toChain === 'starknet' ? 'Starknet' : 'Bitcoin'}
-                </Button>
-              </>
-            )}
-          </VStack>
+
+            <div className='h-[80vh]'>
+
+              {activeTab === 'atomiq' && (
+                <iframe src="https://app.atomiq.exchange" width="100%" height="100%" loading="lazy"></iframe>
+              )}
+              {activeTab === 'garden' && (
+                <iframe src="https://app.garden.finance/swap?input-chain=bitcoin&input-asset=BTC&output-chain=starknet&output-asset=WBTC" width="100%" height="100%" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+              )}
+
+              {activeTab === 'internal' && (
+                <BridgeAtomiq />
+              )}
+
+              {activeTab === 'layerswap' && (
+                <iframe src="https://app.garden.finance/swap?input-chain=bitcoin&input-asset=BTC&output-chain=starknet&output-asset=WBTC" width="100%" height="100%" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+
+              )}
+
+
+              {activeTab === 'onramp' && (
+                <iframe src="https://onramp.money/main/swap/?appId=1"></iframe>
+              )}
+
+            </div>
+
+
+          </div>
         </div>
       </div>
     </Box>

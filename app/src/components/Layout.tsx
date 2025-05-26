@@ -244,9 +244,21 @@ const Layout = ({ children }: LayoutProps) => {
               <Icon name="GiftIcon" size={24} />
               Yield</Link>
 
+              <Link href="/console" className="sidebar-nav-item" onClick={closeSidebar}>
+              <Icon name="ConsoleIcon" size={24} />
+              Console</Link>
+
             <Link href="/stablecoin" className="sidebar-nav-item" onClick={closeSidebar}>
               <Icon name="CrownIcon" size={24} />
               Stablecoin</Link>
+
+            <Link href="/peggedcoin" className="sidebar-nav-item" onClick={closeSidebar}>
+              <Icon name="RocketIcon" size={24} />
+              Pegged Coins</Link>
+
+            <Link href="/wallet" className="sidebar-nav-item" onClick={closeSidebar}>
+              <Icon name="WalletIcon" size={24} />
+              Wallet</Link>
 
             <Link href="/mint-stablecoin" className="sidebar-nav-item" onClick={closeSidebar}>
               <svg className="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

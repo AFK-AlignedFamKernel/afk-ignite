@@ -1,9 +1,7 @@
 import {Button, Menu, MenuButton, MenuItem, MenuList} from '@chakra-ui/react';
 
 import AccountStarknet from './account/starknet/AccountStarknet';
-import {TelegramAccount} from './telegram';
-// import DynamicManagement from './dynamic';
-
+    
 interface IMenuParent {
   children?: React.ReactNode;
 }

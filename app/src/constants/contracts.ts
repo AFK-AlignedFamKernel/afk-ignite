@@ -1,5 +1,12 @@
+import { TokenSelection } from '@/types';
 import { constants, getChecksumAddress } from 'starknet';
 
+
+export const BACKED_USD_ADDRESSES = {
+  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+    '0x44d4820509cb96e95ccd8f323d1906c959d8131656317d09dea26b5c611f573',
+  ),
+}
 
 export const AUSD_ADDRESSES = {
   [constants.StarknetChainId.SN_MAIN]: '', // TODO: Add mainnet escrow address
@@ -16,6 +23,12 @@ export const AUSD_ADDRESSES = {
   ),
   
 };
+
+export const AETH_ADDRESSES = {
+  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+    '0x5de77134748409e9fbf488b6b039228826813c022c5943c50de5e417de1ead3',
+  ),
+}
 
 // export const USD_ADDRESSES = {
 //   [constants.StarknetChainId.SN_MAIN]: '0x02f37c3e00e75ee4135b32bb60c37e0599af264076376a618f138d2f9929ac74', // TODO: Add mainnet escrow address
@@ -44,27 +57,6 @@ export const AUSD_TOKEN_AVAILABLE = [
   },
 ]
 
-
-
-export const AETH_ADDRESSES = {
-  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
-    '0x17b3ce9c2c328ff50bd09cf349a8455ffc5d8c0e776964795b2024cf55761dd',
-  ),
-
-}
-
-export const ESCROW_ADDRESSES = {
-  [constants.StarknetChainId.SN_MAIN]: '', // TODO: Add mainnet escrow address
-  // [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
-  //   '0x078a022e6906c83e049a30f7464b939b831ecbe47029480d7e89684f20c8d263',
-  // ),
-
-  // AFL
-  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
-    '0x7323351c9e497ef4cc59cfdacdc8ba7b07c6b4aaeb07e78dfda0988f6e8e3ee',
-  ),
-};
-
 export const ETH_ADDRESSES = {
   [constants.StarknetChainId.SN_MAIN]: getChecksumAddress(
     '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7',
@@ -82,6 +74,29 @@ export const STRK_ADDRESSES = {
     '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d',
   ),
 };
+
+export const AETH_TOKEN_AVAILABLE = [
+  {
+    address: ETH_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA],
+    symbol: 'ETH',
+    decimals: 18,
+  },
+]
+
+
+export const ESCROW_ADDRESSES = {
+  [constants.StarknetChainId.SN_MAIN]: '', // TODO: Add mainnet escrow address
+  // [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+  //   '0x078a022e6906c83e049a30f7464b939b831ecbe47029480d7e89684f20c8d263',
+  // ),
+
+  // AFL
+  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+    '0x7323351c9e497ef4cc59cfdacdc8ba7b07c6b4aaeb07e78dfda0988f6e8e3ee',
+  ),
+};
+
+
 
 export const BTC_VAULT_ADDRESSES = {
   [constants.StarknetChainId.SN_MAIN]: getChecksumAddress(
@@ -121,3 +136,28 @@ export const AVAILABLE_TOKENS = {
     },
   ],
 };
+
+
+export const DEFAULT_TOKENS: TokenSelection[] = [
+  {
+    symbol:"STRK",
+    decimals:18,
+    address:STRK_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA],
+    icon:"",
+    ticker_id:"STRK/USD"
+  }
+  // {
+  //   symbol: 'BTC',
+  //   address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+  //   decimals: 8,
+  //   icon: '₿',
+  //   ticker_id: 'BTC/USD'
+  // },
+  // {
+  //   symbol: 'ETH',
+  //   address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+  //   decimals: 18,
+  //   icon: 'Ξ',
+  //   ticker_id: 'ETH/USD'
+  // }
+];

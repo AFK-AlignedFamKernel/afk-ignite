@@ -6,7 +6,6 @@ import {useAccount} from 'wagmi';
 // import ConnectWithOtpView from '../dynamic/ConnectWithOtpView';
 import CustomModal from '../modal';
 import Account from './starknet/AccountStarknet';
-import { NostrProfileManagement } from '../Nostr/profile/nostr-profile-management';
 
 const AccountManagement: React.FC = () => {
   const toast = useToast();
@@ -19,7 +18,6 @@ const AccountManagement: React.FC = () => {
 
   return (
     <Box maxWidth="400px" mx="auto" p={5} borderWidth="1px" borderRadius="md" boxShadow="md">
-      <NostrProfileManagement></NostrProfileManagement>
       {!account?.address && !accountStarknet?.address && (
         <Box>
           <Text>Connect you</Text>

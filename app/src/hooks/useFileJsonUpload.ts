@@ -1,9 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
-import { useApiMutation } from './useApiMutation';
 import { dataURLToBlob } from '@/utils/helpers';
 import { ApiInstance, ApiBackendInstance } from '@/utils/file-upload';
-import { MetadataOnchain } from '@/types/token';
 
 //ENVS
 const PINATA_GATEWAY = process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/';
@@ -28,6 +26,45 @@ interface ImagePickerAsset {
     height?: number;
     mimeType?: string;
     type?: string;
+}
+
+
+export const uploadFileIpfs = async (file:any) => {
+    try {
+          const formData = new FormData();
+
+                // Handle web file uploads
+                if (typeof file === 'string') {
+                    // Handle data URL strings (base64 encoded images)
+                    if (file.startsWith('data:')) {
+                        const blob = dataURLToBlob(file);
+                        formData.append('file', blob);
+                    } else {
+                        // Handle file paths or URLs
+                        const response = await fetch(file);
+                        const blob = await response.blob();
+                        formData.append('file', blob);
+                    }
+                } else if (file instanceof File) {
+                    // Handle File objects from input elements
+                    formData.append('file', file);
+                } else if (file instanceof Blob) {
+                    // Handle Blob objects
+                    formData.append('file', file);
+                }
+    
+                return ApiBackendInstance.post('/file', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || 'JSON upload failed');
+        }
+        // throw error;
+        return undefined;
+    }
 }
 
 

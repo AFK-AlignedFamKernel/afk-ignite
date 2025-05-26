@@ -11,6 +11,8 @@
     "deploy:mintstablecoin": "ts-node ./deploy/mintstablecoin.ts",
     "run:deposit_peg": "ts-node ./run/peggedcoin/index.ts",
     "run:admin_collateral": "ts-node ./run/peggedcoin/admin_set_collateral.ts",
+    "run:admin_mintcap": "ts-node ./run/mintstablecoin/admin.ts",
+    "run:mint_token_collateral": "ts-node ./run/mintstablecoin/admin_set_collateral.ts",
     "test:stablecoin": "ts-node ./tests/stablecoin.ts",
     "dev": "ts-node index.ts",
     "relay": "ts-node src/index.ts",

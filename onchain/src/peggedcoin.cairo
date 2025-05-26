@@ -219,6 +219,8 @@ mod PeggedCoin {
             fee_deposit_percentage: u256,
             fee_withdraw_percentage: u256,
         ) -> bool {
+            let caller = get_contract_address();
+            assert(self.accesscontrol.has_role(ADMIN_ROLE, caller), errors::NOT_AUTHORIZED);
             self
                 .token_collateral
                 .entry(token_address)
@@ -238,6 +240,9 @@ mod PeggedCoin {
         fn set_token_accepted(
             ref self: ContractState, token_address: ContractAddress, is_accepted: bool,
         ) -> bool {
+            let caller = get_contract_address();
+            assert(self.accesscontrol.has_role(ADMIN_ROLE, caller), errors::NOT_AUTHORIZED);
+
             self.token_accepted.entry(token_address).write(is_accepted);
             true
         }
@@ -249,6 +254,10 @@ mod PeggedCoin {
             is_fees_withdraw: bool,
             fee_withdraw_percentage: u256,
         ) -> bool {
+            let caller = get_contract_address();
+
+            assert(self.accesscontrol.has_role(ADMIN_ROLE, caller), errors::NOT_AUTHORIZED);
+
             self.is_fees_deposit.write(is_fees_deposit);
             self.fee_deposit_percentage.write(fee_deposit_percentage);
             self.is_fees_withdraw.write(is_fees_withdraw);
@@ -268,6 +277,10 @@ mod PeggedCoin {
         fn set_deposit_vault(
             ref self: ContractState, deposit_vault: ContractAddress, is_deposit_vault_enabled: bool,
         ) -> bool {
+            let caller = get_contract_address();
+
+            assert(self.accesscontrol.has_role(ADMIN_ROLE, caller), errors::NOT_AUTHORIZED);
+
             self.deposit_vault.write(deposit_vault);
             self.is_deposit_vault_enabled.write(is_deposit_vault_enabled);
             true
@@ -326,9 +339,7 @@ mod PeggedCoin {
                 .write(amount_deposited_per_user_token + amount_minus_fees);
 
             // println!("deposit_amount_per_user_token: {}", deposit_amount_per_user_token);
-            self
-                .total_minted_amount
-                .write(self.total_minted_amount.read() + amount_minus_fees);
+            self.total_minted_amount.write(self.total_minted_amount.read() + amount_minus_fees);
 
             // let token_collateral = self.token_collateral.entry(token_address).read();
             // let is_fees_deposit_token = token_collateral.is_fees_deposit;
@@ -384,6 +395,8 @@ mod PeggedCoin {
             assert(token_collateral.is_accepted, errors::TOKEN_NOT_ACCEPTED);
 
             let amount_to_withdraw = self.mint_per_user.entry(caller).read();
+            assert(amount_to_withdraw >= amount, errors::NOT_ENOUGH_WITHDRAW_BALANCE);
+
             let amount_token_deposit = self.mint_per_token.entry(token_address).read();
             let amount_deposited_per_user_token = self
                 .deposit_token_per_user
@@ -399,13 +412,6 @@ mod PeggedCoin {
             if self.is_fees_withdraw.read() {
                 fee_amount = amount * fee_withdraw_percentage / 10_000;
             }
-
-            // println!(
-            //     "self.is_deposit_vault_enabled.read(): {}", self.is_deposit_vault_enabled.read(),
-            // );
-            // println!("fee_amount: {}", fee_amount);
-            // println!("amount: {}", amount);
-            // println!("amount - fee_amount: {}", amount - fee_amount);
 
             let amount_minus_fees = amount - fee_amount;
 
@@ -434,11 +440,13 @@ mod PeggedCoin {
 
             if self.is_deposit_vault_enabled.read() && !self.deposit_vault.read().is_zero() {
                 // println!("withdraw vault transfer");
-                // println!("deposit_vault.transfer_from_operator(token_address, amount_minus_fees, recipient);");
+                // println!("deposit_vault.transfer_from_operator(token_address, amount_minus_fees,
+                // recipient);");
                 let address_vault = self.deposit_vault.read();
                 let deposit_vault = IDepositVaultDispatcher { contract_address: address_vault };
-                if fee_amount > 0 { // deposit_vault.transfer_from_operator(token_address, fee_amount,
-                // get_contract_address());
+                if fee_amount > 0 {
+                    deposit_vault
+                        .transfer_from_operator(token_address, fee_amount, get_contract_address());
                 }
                 deposit_vault.transfer_from_operator(token_address, amount_minus_fees, recipient);
             } else {

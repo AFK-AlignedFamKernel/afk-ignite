@@ -60,15 +60,15 @@ const deployAsync = async () => {
   //   "aUSD",
   //   "aligned USDC",
   //   6);
-  await deployPeggedCoin(
-    USDC_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA],
-    "aUSD",
-    "aligned USDC",
-    18);
-  // await deployPeggedCoin(TOKENS_ADDRESS.SEPOLIA.ETH,
-  //   "aETH",
-  //   "aligned ETH",
+  // await deployPeggedCoin(
+  //   USDC_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA],
+  //   "aUSD",
+  //   "aligned USDC",
   //   18);
+  await deployPeggedCoin(TOKENS_ADDRESS.SEPOLIA.ETH,
+    "aETH",
+    "aligned ETH",
+    18);
 }
 
 deployAsync();
