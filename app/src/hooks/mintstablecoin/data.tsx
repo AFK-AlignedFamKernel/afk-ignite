@@ -27,10 +27,10 @@ export const useDataStablecoin = ({ contractAddress }: { contractAddress: string
 
             const balance = await stablecoinContract.balance_of(recipient);
             console.log("balance", balance);
-            // const mintCap = await stablecoinContract.get_total_mint_cap();
+            const mintCap = await stablecoinContract.get_total_mint_cap();
 
             // console.log("mintCap", mintCap);
-            // const token_minted = await stablecoinContract.get_token_minted();
+            const token_minted = await stablecoinContract.get_token_minted();
             // console.log("token_minted", token_minted);
             const total_mint_cap = await stablecoinContract.get_total_mint_cap();
             console.log("total_mint_cap", total_mint_cap);
@@ -43,8 +43,8 @@ export const useDataStablecoin = ({ contractAddress }: { contractAddress: string
             console.log("balance", balance);
             return {
                 balance,
-                // mintCap,
-                // token_minted,
+                mintCap,
+                token_minted,
                 total_mint_cap,
                 mint_per_user,
                 mint_per_token,
