@@ -34,6 +34,7 @@ mod MintStablecoin {
     };
     use starknet::{ContractAddress, get_caller_address, get_contract_address};
     use crate::errors;
+    use crate::interfaces::mint_stablecoin::IViewMintStablecoin;
     // use super::{
     //     ADMIN_ROLE, AdminVaultEvent, IAdminVault, IERC20Basic, IStablecoin, MINTER_ROLE,
     //     MintDepositEvent, OPERATOR_ROLE, WithdrawnEvent,
@@ -182,6 +183,8 @@ mod MintStablecoin {
         self.is_option_mode.write(true);
         self.is_immediate_withdraw.write(true);
         self.is_withdraw_current_price.write(true);
+
+        self.total_mint_cap.write(100_000_u256);
 
         self
             .token_collateral
@@ -337,10 +340,7 @@ mod MintStablecoin {
             true
         }
 
-        fn set_mint_cap(
-            ref self: ContractState,
-            total_mint_cap: u256,
-        ) -> bool {
+        fn set_mint_cap(ref self: ContractState, total_mint_cap: u256) -> bool {
             let caller = get_contract_address();
             println!("set_mint_cap");
             println!("caller {:?}", caller);
@@ -384,7 +384,6 @@ mod MintStablecoin {
 
             true
         }
-
     }
     #[generate_trait]
     impl InternalImpl of InternalTrait {
@@ -413,6 +412,9 @@ mod MintStablecoin {
             assert(token_id_accepted, errors::TOKEN_NOT_ACCEPTED_BY_ID);
 
             let token_address_per_id = self.token_address_per_id.entry(self.token_id.read()).read();
+
+            assert(token_address_per_id == token_address, errors::TOKEN_ADDRESS_NOT_MATCH);
+            assert(!token_id_address.is_zero(), errors::TOKEN_ID_NOT_MATCH);
 
             let mut fee_amount = 0;
             let fee_deposit_percentage = self.fee_deposit_percentage.read();
@@ -445,11 +447,6 @@ mod MintStablecoin {
                 .entry(token_address)
                 .write(amount_deposited_per_user_token + amount_minus_fees);
 
-            let deposit_amount_per_user_token = self
-                .deposit_token_per_user
-                .entry(caller)
-                .entry(token_address)
-                .read();
             // println!("deposit_amount_per_user_token: {}", deposit_amount_per_user_token);
 
             let erc20_quote = IERC20Dispatcher { contract_address: token_address };
@@ -469,11 +466,8 @@ mod MintStablecoin {
             // deducted fees if 1=1
             // TODO fees per token
 
-            let amount_to_mint = 0;
-
             let oracle_address = self.pragma_contract.read();
             let oracle_stats_address = self.summary_stats_address.read();
-            let expiration_timestamp = 1691395615; //in seconds
             // let output = get_asset_price_median(oracle_address,
             // DataType::SpotEntry(token_id_address));
             let arrays_sources = array![];
@@ -481,19 +475,19 @@ mod MintStablecoin {
             let output = get_asset_price_average(
                 oracle_address, DataType::SpotEntry(token_id_address), sources,
             );
-            println!("price: {}", output.price);
-            println!("decimals: {}", output.decimals);
-            println!("last_updated_timestamp: {}", output.last_updated_timestamp);
-            println!("num_sources_aggregated: {}", output.num_sources_aggregated);
+            // println!("price: {}", output.price);
+            // println!("decimals: {}", output.decimals);
+            // println!("last_updated_timestamp: {}", output.last_updated_timestamp);
+            // println!("num_sources_aggregated: {}", output.num_sources_aggregated);
 
             let price = output.price;
             let decimals = output.decimals;
             let price_with_precision = price * fast_power(10_u128, decimals.try_into().unwrap());
 
-            println!("price_with_precision: {}", price_with_precision);
+            // println!("price_with_precision: {}", price_with_precision);
 
             let price_u256: u256 = price_with_precision.try_into().unwrap();
-            println!("price_u256: {}", price_u256);
+            // println!("price_u256: {}", price_u256);
 
             // let amount_to_mint = amount - fee_amount;
             let amount_to_mint = amount_minus_fees * price_u256;
@@ -504,7 +498,7 @@ mod MintStablecoin {
             self.mint_per_token.entry(token_address).write(amount_mint_per_token + amount_to_mint);
 
             // let amount_to_mint_precision = amount * price_with_precision;
-            println!("amount_to_mint: {}", amount_to_mint);
+            // println!("amount_to_mint: {}", amount_to_mint);
             // println!("amount_to_mint_precision: {}", amount_to_mint_precision);
             self.erc20.mint(recipient, amount_to_mint);
 
@@ -533,8 +527,9 @@ mod MintStablecoin {
             let token_collateral = self.token_collateral.entry(token_address).read();
             assert(token_collateral.is_accepted, errors::TOKEN_NOT_ACCEPTED);
 
+            let amount_deposited_per_user = self.deposit_token_per_user.entry(caller).entry(token_address).read();
             let amount_minted_per_user = self.mint_per_user.entry(caller).read();
-            assert(amount_minted_per_user >= amount, errors::NOT_ENOUGH_WITHDRAW_BALANCE);
+            // assert(amount_deposited_per_user >= amount, errors::NOT_ENOUGH_WITHDRAW_BALANCE);
 
             let fee_withdraw_percentage = self.fee_withdraw_percentage.read();
 
@@ -566,15 +561,31 @@ mod MintStablecoin {
                     * fast_power(10_u128, decimals.try_into().unwrap());
                 let price_u256: u256 = price_with_precision.try_into().unwrap();
                 amount_to_withdraw = amount_minus_fees * price_u256;
-            } else {}
+            } else {
+                let oracle_address = self.pragma_contract.read();
+                let arrays_sources = array![];
+                let sources = arrays_sources.span();
+                let output = get_asset_price_average(
+                    oracle_address, DataType::SpotEntry(token_id_address), sources,
+                );
+                let price = output.price;
+                let decimals = output.decimals;
+                let price_with_precision = price
+                    * fast_power(10_u128, decimals.try_into().unwrap());
+                let price_u256: u256 = price_with_precision.try_into().unwrap();
+                amount_to_withdraw = amount_minus_fees * price_u256;
+            }
 
             let total_deposited_per_user_token = self
                 .deposit_token_per_user
                 .entry(caller)
                 .entry(token_address)
                 .read();
+
+            assert(amount_minted_per_user >= amount_to_withdraw, errors::NOT_ENOUGH_WITHDRAW_BALANCE);
+
             assert(
-                total_deposited_per_user_token >= amount_to_withdraw,
+                total_deposited_per_user_token >= amount_minus_fees,
                 errors::NOT_ENOUGH_WITHDRAW_BALANCE,
             );
 
@@ -582,9 +593,13 @@ mod MintStablecoin {
                 .deposit_token_per_user
                 .entry(caller)
                 .entry(token_address)
-                .write(total_deposited_per_user_token - amount_to_withdraw);
-            self.mint_per_user.entry(caller).write(amount_minted_per_user - amount_minus_fees);
-            self.mint_per_token.entry(token_address).write(self.mint_per_token.entry(token_address).read() - amount_to_withdraw);
+                .write(total_deposited_per_user_token - amount_minus_fees);
+            self.mint_per_user.entry(caller).write(amount_minted_per_user - amount_to_withdraw);
+
+            println!("amount_minus_fees: {}", amount_minus_fees);
+            println!("amount_to_withdraw: {}", amount_to_withdraw);
+            println!("amount_minted_per_user: {}", amount_minted_per_user);
+            println!("amount_deposited_per_user: {}", amount_deposited_per_user);
 
             if self.is_deposit_vault_enabled.read() && !self.deposit_vault.read().is_zero() {
                 // println!("withdraw vault transfer");
@@ -601,10 +616,10 @@ mod MintStablecoin {
                 if fee_amount > 0 {
                     erc20_quote.transfer(get_contract_address(), fee_amount);
                 }
-                erc20_quote.transfer(recipient, amount_to_withdraw);
+                erc20_quote.transfer(recipient, amount_minus_fees);
             }
 
-            self.erc20.burn(caller, amount_minus_fees);
+            self.erc20.burn(caller, amount_to_withdraw);
 
             self
                 .emit(
@@ -618,6 +633,58 @@ mod MintStablecoin {
                         caller: caller,
                     },
                 );
+        }
+    }
+
+    #[abi(embed_v0)]
+    impl IViewMintStablecoinImpl of IViewMintStablecoin<ContractState> {
+        fn get_mint_per_user(ref self: ContractState, user: ContractAddress) -> u256 {
+            self.mint_per_user.entry(user).read()
+        }
+
+        fn get_mint_per_token(ref self: ContractState, token_address: ContractAddress) -> u256 {
+            self.mint_per_token.entry(token_address).read()
+        }
+
+        fn get_deposit_user_balance(
+            ref self: ContractState, user: ContractAddress, token_address: ContractAddress,
+        ) -> u256 {
+            self.deposit_token_per_user.entry(user).entry(token_address).read()
+        }
+
+        fn get_total_mint_cap(ref self: ContractState) -> u256 {
+            self.total_mint_cap.read()
+        }
+
+        fn get_price_of_token(
+            ref self: ContractState, token_id: felt252, token_address: ContractAddress,
+        ) -> u128 {
+            let token_id_address = self.token_id_address.entry(token_address).read();
+            let oracle_address = self.pragma_contract.read();
+            let arrays_sources = array![];
+            let sources = arrays_sources.span();
+            let output = get_asset_price_average(
+                oracle_address, DataType::SpotEntry(token_id_address), sources,
+            );
+            output.price
+        }
+
+
+        fn get_price_response(
+            ref self: ContractState, token_id: felt252, token_address: ContractAddress,
+        ) -> PragmaPricesResponse {
+            let token_id_address = self.token_id_address.entry(token_address).read();
+            let oracle_address = self.pragma_contract.read();
+            let arrays_sources = array![];
+            let sources = arrays_sources.span();
+            let output = get_asset_price_average(
+                oracle_address, DataType::SpotEntry(token_id_address), sources,
+            );
+            output
+        }
+
+        fn get_total_minted(ref self: ContractState) -> u256 {
+            self.total_minted_amount.read()
         }
     }
 }

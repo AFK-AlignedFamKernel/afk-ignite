@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { Button, PayButton, init, launchModal, launchPaymentModal, closeModal, requestProvider, Connect, Payment } from '@getalby/bitcoin-connect-react';
 import { useUIStore } from '@/store/uiStore';
 
-export default function AlbyBitcoinConnect() {
+export default function BitoinWallet() {
 
 
     const [tab, setTab] = useState<'receive' | 'pay'>('receive');
@@ -37,8 +37,8 @@ export default function AlbyBitcoinConnect() {
 
 
             <div className="flex flex-row gap-2">
-                <button className="bg-gray-500 text-white px-2 py-2 rounded-md" onClick={() => launchModal()}>Connect</button>
-                <button className="bg-gray-500 text-white px-2 py-2 rounded-md" onClick={() => launchPaymentModal({
+                <button className="bg-gray-500 text-white px-4 py-2 rounded-md" onClick={() => launchModal()}>Connect</button>
+                <button className="bg-gray-500 text-white px-4 py-2 rounded-md" onClick={() => launchPaymentModal({
                     invoice: invoiceString,
                     // amount: 1000,
                     // description: 'AFK Ignite',
@@ -46,7 +46,7 @@ export default function AlbyBitcoinConnect() {
                     //     console.log(preimage);
                     // },
                 })}>Send Payment</button>
-                <button className="bg-gray-500 text-white px-2 py-2 rounded-md" onClick={async () => {
+                <button className="bg-gray-500 text-white px-4 py-2 rounded-md" onClick={async () => {
                     const weblnProvider = await requestProvider();
                     const { preimage } = await weblnProvider.sendPayment(invoiceString)
 
@@ -60,7 +60,7 @@ export default function AlbyBitcoinConnect() {
                         />
                     )
                 }}>
-                    Request WebLN
+                    Request WebLN provider
                 </button>
             </div>
 

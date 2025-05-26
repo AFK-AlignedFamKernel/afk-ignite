@@ -1,5 +1,8 @@
 use starknet::ContractAddress;
-
+use pragma_lib::abi::{
+    IPragmaABISafeDispatcherTrait,
+    PragmaPricesResponse,
+};
 pub const MINTER_ROLE: felt252 = selector!("MINTER_ROLE");
 pub const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
 pub const OPERATOR_ROLE: felt252 = selector!("OPERATOR_ROLE");
@@ -51,6 +54,46 @@ pub trait IAdminVault<TContractState> {
         ref self: TContractState,
         total_mint_cap: u256,
     ) -> bool;
+}
+
+#[starknet::interface]
+pub trait IViewMintStablecoin<TContractState> {
+    fn get_mint_per_user(
+        ref self: TContractState,
+        user: ContractAddress,
+    ) -> u256;
+
+    fn get_mint_per_token(
+        ref self: TContractState,
+        token_address: ContractAddress,
+    ) -> u256;
+
+    fn get_deposit_user_balance(
+        ref self: TContractState,
+        user: ContractAddress,
+        token_address: ContractAddress,
+    ) -> u256;
+
+    fn get_total_mint_cap(
+        ref self: TContractState,
+    ) -> u256;
+
+
+    fn get_price_of_token(
+        ref self: TContractState,
+        token_id: felt252,
+        token_address: ContractAddress,
+    ) -> u128;
+
+    fn get_price_response(
+        ref self: TContractState,
+        token_id: felt252,
+        token_address: ContractAddress,
+    ) -> PragmaPricesResponse;
+
+    fn get_total_minted(
+        ref self: TContractState,
+    ) -> u256;
 }
 
 

@@ -12,8 +12,7 @@ export default function HomePage() {
   return (
     <div className="content">
       <MenuHomeComponent></MenuHomeComponent>
-
-      <PeggedList />
+      {/* <PeggedList /> */}
     </div>
   );
 }

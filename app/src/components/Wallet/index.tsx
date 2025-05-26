@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Box, useColorModeValue } from '@chakra-ui/react';
 import Cashu from '../Cashu';
 import TokenEncryptedElgamal from '../PrivateToken/elgamal';
+import PayReceive from '../PayReceive';
 
 const WalletComponents = () => {
 
@@ -27,6 +28,7 @@ const WalletComponents = () => {
       </div>
 
 
+      {activeTab === 'pay_receive' && <PayReceive />}
       {activeTab === 'cashu' && <Cashu />}
       {activeTab === 'private' && <TokenEncryptedElgamal />}
       {/* {activeTab === 'bitcoin' && <Bitcoin />} */}

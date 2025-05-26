@@ -1,3 +1,2 @@
 afk_ignite::tests::peggedcoin_tests::pegged_tests::test_peggedcoin_with_vault
 afk_ignite::tests::stablecoin_tests::stablecoin_tests::test_stablecoin_with_vault
-afk_ignite::tests::stablecoin_tests::stablecoin_tests::test_stablecoin_mint
