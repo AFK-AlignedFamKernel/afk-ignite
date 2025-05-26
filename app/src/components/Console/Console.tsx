@@ -9,10 +9,9 @@ import { PeggedList } from "@/components/VaultMint/PeggedList";
 import Bridge from "@/components/Bridge";
 import WalletComponents from "@/components/Wallet";
 
-export default function ConsolePage() {
+export default function ConsoleComponent() {
 
     const [selectedToken, setSelectedToken] = useState<TokenSelection | null>(DEFAULT_TOKENS[0]);
-
 
     const [activeTab, setActiveTab] = useState<'mint' | 'peggedcoin' | 'wallet' | 'bridge'>("mint");
     const [selectedTokenSymbol, setSelectedTokenSymbol] = useState<string | null>(null);
@@ -61,6 +60,4 @@ export default function ConsolePage() {
 
         </div>
     )
-
-
 }

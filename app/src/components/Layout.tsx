@@ -244,6 +244,10 @@ const Layout = ({ children }: LayoutProps) => {
               <Icon name="GiftIcon" size={24} />
               Yield</Link>
 
+              <Link href="/console" className="sidebar-nav-item" onClick={closeSidebar}>
+              <Icon name="ConsoleIcon" size={24} />
+              Console</Link>
+
             <Link href="/stablecoin" className="sidebar-nav-item" onClick={closeSidebar}>
               <Icon name="CrownIcon" size={24} />
               Stablecoin</Link>

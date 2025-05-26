@@ -176,7 +176,7 @@ const MobileBottomBar = () => {
               <p className="text-xs font-medium leading-normal tracking-[0.015em]">Mint</p>
             </button>
           </Link>
-          <Link href="/bridge">
+          <Link href="/console">
 
             <button className="flex flex-1 flex-col items-center justify-end gap-1" style={{ color: secondaryTextColor }}>
               <div className="flex h-8 items-center justify-center">
@@ -184,7 +184,7 @@ const MobileBottomBar = () => {
                   <path d="M232,160H200V101.34a71.89,71.89,0,0,0,29,21.42,8,8,0,0,0,6-14.83A55.78,55.78,0,0,1,200,56a8,8,0,0,0-16,0A56,56,0,0,1,72,56a8,8,0,0,0-16,0,55.78,55.78,0,0,1-35,51.93,8,8,0,0,0,6,14.83,71.89,71.89,0,0,0,29-21.42V160H24a8,8,0,0,0,0,16H56v24a8,8,0,0,0,16,0V176H184v24a8,8,0,0,0,16,0V176h32a8,8,0,0,0,0-16Zm-88-33.8V160H112V126.2a72,72,0,0,0,32,0Zm-72-25a72.47,72.47,0,0,0,24,19.27V160H72ZM160,160V120.48a72.47,72.47,0,0,0,24-19.27V160Z"></path>
                 </svg>
               </div>
-              <p className="text-xs font-medium leading-normal tracking-[0.015em]">Bridge</p>
+              <p className="text-xs font-medium leading-normal tracking-[0.015em]">Console</p>
 
             </button>
           </Link>
