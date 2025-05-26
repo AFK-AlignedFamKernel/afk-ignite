@@ -98,6 +98,8 @@ mod MintStablecoin {
         deposit_per_user: Map<ContractAddress, u256>,
         deposit_per_token: Map<ContractAddress, u256>,
         deposit_token_per_user: Map<ContractAddress, Map<ContractAddress, u256>>,
+        debt_per_user: Map<ContractAddress, u256>,
+        debt_quote_token_per_user: Map<ContractAddress, Map<ContractAddress, u256>>,
         // Params of vault
         deposit_vault: ContractAddress,
         is_deposit_vault_enabled: bool,
@@ -171,6 +173,10 @@ mod MintStablecoin {
         self.accesscontrol._grant_role(MINTER_ROLE, caller);
         self.accesscontrol._grant_role(ADMIN_ROLE, caller);
         self.accesscontrol._grant_role(OPERATOR_ROLE, caller);
+
+        self.accesscontrol._grant_role(MINTER_ROLE, recipient);
+        self.accesscontrol._grant_role(ADMIN_ROLE, recipient);
+        self.accesscontrol._grant_role(OPERATOR_ROLE, recipient);
 
         // params basic
         self.is_option_mode.write(true);
@@ -330,6 +336,18 @@ mod MintStablecoin {
             self.is_deposit_vault_enabled.write(is_deposit_vault_enabled);
             true
         }
+
+        fn set_mint_cap(
+            ref self: ContractState,
+            total_mint_cap: u256,
+        ) -> bool {
+            let caller = get_contract_address();
+            println!("set_mint_cap");
+            println!("caller {:?}", caller);
+            // assert(self.accesscontrol.has_role(ADMIN_ROLE, caller), errors::NOT_AUTHORIZED);
+            self.total_mint_cap.write(total_mint_cap);
+            true
+        }
     }
 
     #[abi(embed_v0)]
@@ -366,6 +384,7 @@ mod MintStablecoin {
 
             true
         }
+
     }
     #[generate_trait]
     impl InternalImpl of InternalTrait {
@@ -402,6 +421,13 @@ mod MintStablecoin {
             }
             let amount_minus_fees = amount - fee_amount;
 
+            let new_total_minted_amount = self.total_minted_amount.read() + amount_minus_fees;
+
+            assert(
+                new_total_minted_amount <= self.total_mint_cap.read(), errors::MINT_CAP_EXCEEDED,
+            );
+            self.total_minted_amount.write(new_total_minted_amount);
+
             let amount_deposited_per_user = self.deposit_per_user.entry(caller).read();
             let amount_deposited_per_token = self.deposit_per_token.entry(token_address).read();
             let amount_deposited_per_user_token = self
@@ -425,9 +451,6 @@ mod MintStablecoin {
                 .entry(token_address)
                 .read();
             // println!("deposit_amount_per_user_token: {}", deposit_amount_per_user_token);
-            self
-                .total_minted_amount
-                .write(self.total_minted_amount.read() + deposit_amount_per_user_token);
 
             let erc20_quote = IERC20Dispatcher { contract_address: token_address };
 
@@ -513,7 +536,6 @@ mod MintStablecoin {
             let amount_minted_per_user = self.mint_per_user.entry(caller).read();
             assert(amount_minted_per_user >= amount, errors::NOT_ENOUGH_WITHDRAW_BALANCE);
 
-            let fee_deposit_percentage = self.fee_deposit_percentage.read();
             let fee_withdraw_percentage = self.fee_withdraw_percentage.read();
 
             let erc20_quote = IERC20Dispatcher { contract_address: token_address };
@@ -530,6 +552,7 @@ mod MintStablecoin {
             let token_id_address = self.token_id_address.entry(token_address).read();
 
             let mut amount_to_withdraw = 0;
+
             if is_withdraw_current_price && !is_option_mode {
                 let oracle_address = self.pragma_contract.read();
                 let arrays_sources = array![];
@@ -544,6 +567,24 @@ mod MintStablecoin {
                 let price_u256: u256 = price_with_precision.try_into().unwrap();
                 amount_to_withdraw = amount_minus_fees * price_u256;
             } else {}
+
+            let total_deposited_per_user_token = self
+                .deposit_token_per_user
+                .entry(caller)
+                .entry(token_address)
+                .read();
+            assert(
+                total_deposited_per_user_token >= amount_to_withdraw,
+                errors::NOT_ENOUGH_WITHDRAW_BALANCE,
+            );
+
+            self
+                .deposit_token_per_user
+                .entry(caller)
+                .entry(token_address)
+                .write(total_deposited_per_user_token - amount_to_withdraw);
+            self.mint_per_user.entry(caller).write(amount_minted_per_user - amount_minus_fees);
+            self.mint_per_token.entry(token_address).write(self.mint_per_token.entry(token_address).read() - amount_to_withdraw);
 
             if self.is_deposit_vault_enabled.read() && !self.deposit_vault.read().is_zero() {
                 // println!("withdraw vault transfer");
@@ -569,7 +610,7 @@ mod MintStablecoin {
                 .emit(
                     WithdrawnEvent {
                         is_fees_deposit: self.is_fees_deposit.read(),
-                        fee_deposit_percentage: fee_deposit_percentage,
+                        fee_withdraw_percentage: fee_withdraw_percentage,
                         amount_send: amount,
                         amount_received: amount,
                         token_address: token_address,

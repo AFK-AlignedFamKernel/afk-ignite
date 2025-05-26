@@ -1,14 +1,14 @@
-old_sender_c1 = "100",
-old_sender_c2 = "200",
-new_sender_c1 = "74",
-new_sender_c2 = "174",
+old_sender_c1 = "100"
+old_sender_c2 = "200"
+new_sender_c1 = "74"
+new_sender_c2 = "174"
 
-old_receiver_c1 = "10",
-old_receiver_c2 = "20",
-new_receiver_c1 = "36",
-new_receiver_c2 = "46",
+old_receiver_c1 = "10"
+old_receiver_c2 = "20"
+new_receiver_c1 = "36"
+new_receiver_c2 = "46"
 
-secret_scalar = "123",
-transfer_amount = "26",
-receiver_pubkey_x = "3",
+secret_scalar = "123"
+transfer_amount = "26"
+receiver_pubkey_x = "3"
 receiver_pubkey_y = "0"

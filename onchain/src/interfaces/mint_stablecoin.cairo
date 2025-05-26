@@ -46,6 +46,11 @@ pub trait IAdminVault<TContractState> {
     fn set_deposit_vault(
         ref self: TContractState, deposit_vault: ContractAddress, is_deposit_vault_enabled: bool,
     ) -> bool;
+
+    fn set_mint_cap(
+        ref self: TContractState,
+        total_mint_cap: u256,
+    ) -> bool;
 }
 
 
@@ -113,7 +118,7 @@ pub struct MintDepositEvent {
 #[derive(Drop, starknet::Event, Serde, Copy)]
 pub struct WithdrawnEvent {
     pub is_fees_deposit: bool,
-    pub fee_deposit_percentage: u256,
+    pub fee_withdraw_percentage: u256,
     pub amount_send: u256,
     pub amount_received: u256,
     pub token_address: ContractAddress,

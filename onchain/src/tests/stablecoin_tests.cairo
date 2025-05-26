@@ -5,10 +5,11 @@ pub mod stablecoin_tests {
     };
     use afk_ignite::interfaces::mint_stablecoin::{
         IMintStablecoinDispatcher, IMintStablecoinDispatcherTrait,
+        IAdminVault, IAdminVaultDispatcher, IAdminVaultDispatcherTrait, 
     };
     use afk_ignite::interfaces::peggedcoin::{
-        IAdminVault, IAdminVaultDispatcher, IAdminVaultDispatcherTrait, IPeggedCoinDispatcher,
         IPeggedCoinDispatcherTrait,
+        IPeggedCoinDispatcher
     };
     use alexandria_math::fast_power::fast_power;
     use core::num::traits::Zero;
@@ -128,7 +129,7 @@ pub mod stablecoin_tests {
 
     fn context(
         whitelist: bool,
-    ) -> (IPeggedCoinDispatcher, IERC20Dispatcher, IDepositVaultDispatcher) {
+    ) -> (IMintStablecoinDispatcher, IERC20Dispatcher, IDepositVaultDispatcher) {
         let token_deposit_address = deploy_token_collateral(
             OWNER, 1_000_000_u256 * fast_power(10, 18), 18, "MockToken", "MTK",
         );
@@ -147,16 +148,26 @@ pub mod stablecoin_tests {
             TOKEN_ID,
         );
 
-        let dispatcher = IPeggedCoinDispatcher { contract_address };
+        let dispatcher = IMintStablecoinDispatcher { contract_address };
+
+        let dispatcher_admin = IAdminVaultDispatcher {
+            contract_address: dispatcher.contract_address,
+        };
+        cheat_caller_address(dispatcher_admin.contract_address, OWNER, CheatSpan::TargetCalls(1));
+
+        println!("set_mint_cap");
+        println!("OWNER {:?}", OWNER);
+        dispatcher_admin.set_mint_cap(100_000_u256 * fast_power(10, 18));
         let deposit_vault_address = deploy_deposit_vault(OWNER);
 
         let deposit_vault_dispatcher = IDepositVaultDispatcher {
             contract_address: deposit_vault_address,
         };
         cheat_caller_address(
-            deposit_vault_dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(1),
+            deposit_vault_dispatcher.contract_address, OWNER, CheatSpan::TargetCalls(2),
         );
         deposit_vault_dispatcher.set_operator(contract_address);
+    
         cheat_caller_address(contract_address, OWNER, CheatSpan::TargetCalls(1));
 
         (dispatcher, collateral_token_dispatcher, deposit_vault_dispatcher)
@@ -197,6 +208,9 @@ pub mod stablecoin_tests {
         dispatcher.withdraw(OWNER.try_into().unwrap(), amount_to_deposit, token_address);
         let balance_of_user_after = token_vault.balance_of(OWNER);
         println!("balance_of_user_after: {}", balance_of_user_after);
+        let collateral_balance_of_user_after = collateral_token_dispatcher.balance_of(OWNER);
+        println!("collateral_balance_of_user_after: {}", collateral_balance_of_user_after);
+        println!("user_balance: {}", user_balance);
         assert!(balance_of_user_after >= 0);
         assert!(collateral_token_dispatcher.balance_of(OWNER) >= user_balance);
     }
