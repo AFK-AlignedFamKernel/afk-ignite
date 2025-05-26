@@ -1,5 +1,11 @@
 import { constants, getChecksumAddress } from "starknet";
 
+export const BACKED_USD_ADDRESSES = {
+  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+    '0x44d4820509cb96e95ccd8f323d1906c959d8131656317d09dea26b5c611f573',
+  ),
+}
+
 export const AUSD_ADDRESSES = {
   [constants.StarknetChainId.SN_MAIN]: '', // TODO: Add mainnet escrow address
 

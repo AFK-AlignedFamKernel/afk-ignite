@@ -1,5 +1,12 @@
+import { TokenSelection } from '@/types';
 import { constants, getChecksumAddress } from 'starknet';
 
+
+export const BACKED_USD_ADDRESSES = {
+  [constants.StarknetChainId.SN_SEPOLIA]: getChecksumAddress(
+    '0x44d4820509cb96e95ccd8f323d1906c959d8131656317d09dea26b5c611f573',
+  ),
+}
 
 export const AUSD_ADDRESSES = {
   [constants.StarknetChainId.SN_MAIN]: '', // TODO: Add mainnet escrow address
@@ -129,3 +136,28 @@ export const AVAILABLE_TOKENS = {
     },
   ],
 };
+
+
+export const DEFAULT_TOKENS: TokenSelection[] = [
+  {
+    symbol:"STRK",
+    decimals:18,
+    address:STRK_ADDRESSES[constants.StarknetChainId.SN_SEPOLIA],
+    icon:"",
+    ticker_id:"STRK/USD"
+  }
+  // {
+  //   symbol: 'BTC',
+  //   address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+  //   decimals: 8,
+  //   icon: '₿',
+  //   ticker_id: 'BTC/USD'
+  // },
+  // {
+  //   symbol: 'ETH',
+  //   address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+  //   decimals: 18,
+  //   icon: 'Ξ',
+  //   ticker_id: 'ETH/USD'
+  // }
+];

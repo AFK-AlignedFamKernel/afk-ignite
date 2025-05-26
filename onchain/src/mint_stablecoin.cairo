@@ -342,8 +342,8 @@ mod MintStablecoin {
 
         fn set_mint_cap(ref self: ContractState, total_mint_cap: u256) -> bool {
             let caller = get_contract_address();
-            println!("set_mint_cap");
-            println!("caller {:?}", caller);
+            // println!("set_mint_cap");
+            // println!("caller {:?}", caller);
             // assert(self.accesscontrol.has_role(ADMIN_ROLE, caller), errors::NOT_AUTHORIZED);
             self.total_mint_cap.write(total_mint_cap);
             true
@@ -596,10 +596,10 @@ mod MintStablecoin {
                 .write(total_deposited_per_user_token - amount_minus_fees);
             self.mint_per_user.entry(caller).write(amount_minted_per_user - amount_to_withdraw);
 
-            println!("amount_minus_fees: {}", amount_minus_fees);
-            println!("amount_to_withdraw: {}", amount_to_withdraw);
-            println!("amount_minted_per_user: {}", amount_minted_per_user);
-            println!("amount_deposited_per_user: {}", amount_deposited_per_user);
+            // println!("amount_minus_fees: {}", amount_minus_fees);
+            // println!("amount_to_withdraw: {}", amount_to_withdraw);
+            // println!("amount_minted_per_user: {}", amount_minted_per_user);
+            // println!("amount_deposited_per_user: {}", amount_deposited_per_user);
 
             if self.is_deposit_vault_enabled.read() && !self.deposit_vault.read().is_zero() {
                 // println!("withdraw vault transfer");
@@ -638,26 +638,26 @@ mod MintStablecoin {
 
     #[abi(embed_v0)]
     impl IViewMintStablecoinImpl of IViewMintStablecoin<ContractState> {
-        fn get_mint_per_user(ref self: ContractState, user: ContractAddress) -> u256 {
+        fn get_mint_per_user(self: @ContractState, user: ContractAddress) -> u256 {
             self.mint_per_user.entry(user).read()
         }
 
-        fn get_mint_per_token(ref self: ContractState, token_address: ContractAddress) -> u256 {
+        fn get_mint_per_token(self: @ContractState, token_address: ContractAddress) -> u256 {
             self.mint_per_token.entry(token_address).read()
         }
 
         fn get_deposit_user_balance(
-            ref self: ContractState, user: ContractAddress, token_address: ContractAddress,
+            self: @ContractState, user: ContractAddress, token_address: ContractAddress,
         ) -> u256 {
             self.deposit_token_per_user.entry(user).entry(token_address).read()
         }
 
-        fn get_total_mint_cap(ref self: ContractState) -> u256 {
+        fn get_total_mint_cap(self: @ContractState) -> u256 {
             self.total_mint_cap.read()
         }
 
         fn get_price_of_token(
-            ref self: ContractState, token_id: felt252, token_address: ContractAddress,
+            self: @ContractState, token_id: felt252, token_address: ContractAddress,
         ) -> u128 {
             let token_id_address = self.token_id_address.entry(token_address).read();
             let oracle_address = self.pragma_contract.read();
@@ -671,7 +671,7 @@ mod MintStablecoin {
 
 
         fn get_price_response(
-            ref self: ContractState, token_id: felt252, token_address: ContractAddress,
+            self: @ContractState, token_id: felt252, token_address: ContractAddress,
         ) -> PragmaPricesResponse {
             let token_id_address = self.token_id_address.entry(token_address).read();
             let oracle_address = self.pragma_contract.read();
@@ -683,7 +683,7 @@ mod MintStablecoin {
             output
         }
 
-        fn get_total_minted(ref self: ContractState) -> u256 {
+        fn get_total_minted(self: @ContractState) -> u256 {
             self.total_minted_amount.read()
         }
     }

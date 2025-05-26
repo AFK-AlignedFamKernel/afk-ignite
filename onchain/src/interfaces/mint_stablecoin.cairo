@@ -59,40 +59,40 @@ pub trait IAdminVault<TContractState> {
 #[starknet::interface]
 pub trait IViewMintStablecoin<TContractState> {
     fn get_mint_per_user(
-        ref self: TContractState,
+        self: @TContractState,
         user: ContractAddress,
     ) -> u256;
 
     fn get_mint_per_token(
-        ref self: TContractState,
+        self: @TContractState,
         token_address: ContractAddress,
     ) -> u256;
 
     fn get_deposit_user_balance(
-        ref self: TContractState,
+        self: @TContractState,
         user: ContractAddress,
         token_address: ContractAddress,
     ) -> u256;
 
     fn get_total_mint_cap(
-        ref self: TContractState,
+        self: @TContractState,
     ) -> u256;
 
 
     fn get_price_of_token(
-        ref self: TContractState,
+        self: @TContractState,
         token_id: felt252,
         token_address: ContractAddress,
     ) -> u128;
 
     fn get_price_response(
-        ref self: TContractState,
+        self: @TContractState,
         token_id: felt252,
         token_address: ContractAddress,
     ) -> PragmaPricesResponse;
 
     fn get_total_minted(
-        ref self: TContractState,
+        self: @TContractState,
     ) -> u256;
 }
 
